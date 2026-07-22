@@ -1,0 +1,28 @@
+# Operating system
+.DS_Store
+Thumbs.db
+
+# Editors and local development
+.vscode/
+.idea/
+.claude/
+*.local
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Source/master business data — do not publish
+*.xlsx
+*.xls
+*.xlsb
+*.csv
+
+# Build/log/temp files
+node_modules/
+dist/
+build/
+*.log
+*.tmp
+*.bak
