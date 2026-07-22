@@ -1,0 +1,2310 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Item Mapping Validation — PO–Invoice–DO Mapping</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  body{margin:0}
+  ::-webkit-scrollbar{height:10px;width:10px}
+  ::-webkit-scrollbar-thumb{background:var(--color-divider);border-radius:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+  @keyframes imv-pulse{0%,100%{opacity:0.5}50%{opacity:0.9}}
+  .imv-skel{background:color-mix(in srgb, var(--color-text) 10%, var(--color-bg));border-radius:var(--radius-sm);animation:imv-pulse 1.4s ease-in-out infinite}
+</style>
+<script src="vendor/react.production.min.js"></script>
+<script src="vendor/react-dom.production.min.js"></script>
+<script src="vendor/babel.min.js"></script>
+<script src="vendor/xlsx.full.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+
+const SUPPLIER_MASTER = {
+  "บริษัท เจดับบลิวที โฮลดิ้ง จำกัด": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "ปูนผงเอสซีจี ปอร์ตแลนด์ประเภท 3",
+      "supplierUom": "ตัน",
+      "rvnItemCode": "300330001",
+      "rvnItemName": "ปูนซีเมนต์ผง Ordinary Portland Cement (OPC) type III - Bulk 30 +/- Ton",
+      "rvnUom": "Ton"
+    }
+  ],
+  "บริษัท เกียรติทยากร เมททัล จำกัด": [
+    {
+      "supplierItemCode": "25-s28-32050CD9",
+      "supplierItemName": "เพลาดำ 32mm.x50cm.",
+      "supplierUom": "ส",
+      "rvnItemCode": "300550003",
+      "rvnItemName": "RB32 mm. x 0.50 m.",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "01-TAT-160764050",
+      "supplierItemName": "DB SD40 16mm.x0.76m.",
+      "supplierUom": "ส",
+      "rvnItemCode": "300554002",
+      "rvnItemName": "DB16 mm. x 0.76 m. Non T",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "81-040-12001",
+      "supplierItemName": "DB SD40 12mm.x2.00m",
+      "supplierUom": "ส",
+      "rvnItemCode": "300554001",
+      "rvnItemName": "DB12 mm. x 2.00 m. Non T",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "00-TAT-061024000",
+      "supplierItemName": "RB SR24 06mm.10m.",
+      "supplierUom": "ส",
+      "rvnItemCode": "300510001",
+      "rvnItemName": "เหล็กเส้นกลมผิวเรียบ มอก.20-2543 SR24 : RB6x10ม",
+      "rvnUom": "pieces"
+    },
+    {
+      "supplierItemCode": "00-TY-091024000",
+      "supplierItemName": "RB SR24 09mm.x10m.",
+      "supplierUom": "ส",
+      "rvnItemCode": "300510002",
+      "rvnItemName": "เหล็กเส้นกลมผิวเรียบ มอก.20-2543 SR24 : RB9x10ม",
+      "rvnUom": "pieces"
+    },
+    {
+      "supplierItemCode": "01-TAT-201040050",
+      "supplierItemName": "DB SD40 20mm.x10m.",
+      "supplierUom": "ส",
+      "rvnItemCode": "300521017",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB20x10ม Non T",
+      "rvnUom": "pieces"
+    },
+    {
+      "supplierItemCode": "01-TAT-121040050",
+      "supplierItemName": "DB SD40 12mm.x10m.",
+      "supplierUom": "ส",
+      "rvnItemCode": "300521015",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB12x10ม Non T",
+      "rvnUom": "pieces"
+    },
+    {
+      "supplierItemCode": "01-TAT-201040050",
+      "supplierItemName": "DB SD40 20mm.x10m.",
+      "supplierUom": "ส",
+      "rvnItemCode": "300521017",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB20x10ม Non T",
+      "rvnUom": "pieces"
+    },
+    {
+      "supplierItemCode": "01-TY-161040090",
+      "supplierItemName": "DB SD40 16mm.x10m.",
+      "supplierUom": "ส",
+      "rvnItemCode": "300521003",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB16x10ม Non T",
+      "rvnUom": "pieces"
+    },
+    {
+      "supplierItemCode": "01-TY-251040090",
+      "supplierItemName": "DB SD40 25mm.x10m.",
+      "supplierUom": "ส",
+      "rvnItemCode": "300521005",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB25x10ม Non T",
+      "rvnUom": "pieces"
+    },
+    {
+      "supplierItemCode": "01-TAT-251040090",
+      "supplierItemName": "DB SD40 25mm.x10m.",
+      "supplierUom": "ส",
+      "rvnItemCode": "300521005",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB25x10ม Non T",
+      "rvnUom": "pieces"
+    },
+    {
+      "supplierItemCode": "2S-S28-32050CD9",
+      "supplierItemName": "เพลาดำ 32mm.x50cm.",
+      "supplierUom": "ส",
+      "rvnItemCode": "300550003",
+      "rvnItemName": "RB32 mm. x 0.50 m.",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "01-TAT-281250090",
+      "supplierItemName": "DB SD50 28mm.x12m.",
+      "supplierUom": "ส",
+      "rvnItemCode": "300522011",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD50 : DB28x12ม Non T",
+      "rvnUom": "pieces"
+    },
+    {
+      "supplierItemCode": "07-xxx-0230-0-1",
+      "supplierItemName": "ลวดผูกเหล็ก #18",
+      "supplierUom": "ขด",
+      "rvnItemCode": "300530001",
+      "rvnItemName": "ลวดผูกเหล็ก มอก138-2518 no.18 : wt 2.5 kg+/-",
+      "rvnUom": "roll"
+    }
+  ],
+  "บริษัท พี.โอเวอร์ซีส์ สตีล จำกัด (มหาชน)": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เหล็กเส้นข้ออ้อย SD40 25 มม. X 12 ม. ตรง",
+      "supplierUom": "",
+      "rvnItemCode": "300524012",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB25x12ม",
+      "rvnUom": "Pieces"
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เหล็กเส้นข้ออ้อย SD40 28 มม. X 10 ม. ตรง",
+      "supplierUom": "",
+      "rvnItemCode": "300524006",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB28x10ม",
+      "rvnUom": "Pieces"
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เหล็กเส้นข้ออ้อย SD40 28 มม. X 12 ม. ตรง",
+      "supplierUom": "",
+      "rvnItemCode": "300524013",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB28x12ม",
+      "rvnUom": "Pieces"
+    }
+  ],
+  "บริษัท พรีคอน (ประเทศไทย) จำกัด": [
+    {
+      "supplierItemCode": "F05-0529",
+      "supplierItemName": "ท่อคอนกรีตขนาด 120 ซม.ยาว 100 ซม. (ท่อคอนกรีตอัดแรง คสล.มอก.ชั้น 3)",
+      "supplierUom": "ท่อน",
+      "rvnItemCode": "300630007",
+      "rvnItemName": "R.C. Pipe Culverts Dia 1.2 m x 1.0 m. ท่อ ค.ส.ล มอก.128 -2560 Type Class III",
+      "rvnUom": "Meter"
+    },
+    {
+      "supplierItemCode": "F06-1066",
+      "supplierItemName": "บ่อพักขนาด 1.20m.(1.20x1.80x2.05m.) หนา 0.15m. 2 ทางตรง มีฐาน 2RB9 @0.15, 0.20 (กรมทางหลวง TYPE C)",
+      "supplierUom": "บ่อ",
+      "rvnItemCode": "300631020",
+      "rvnItemName": "Manhole R.C. for Pipe Dia 1.20 m , 1.20x1.80x2.05x 0.15 m. Type C 2ทางตรง",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "F05-0521",
+      "supplierItemName": "ท่อคอนกรีตขนาด 80 ซม. ยาว 100 ชม. (ท่อคอนกรีต อัดแรง คสล. มอก.ชั้น 3)",
+      "supplierUom": "ท่อน",
+      "rvnItemCode": "300630005",
+      "rvnItemName": "R.C. Pipe Culverts Dia 0.80 m x 1.0 m. ท่อ ค.ส.ล มอก.128 -2560 Type Class III",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "F06-2129",
+      "supplierItemName": "บ่อพักขนาด 0.80m.(1.30x1.30x1.60m.) หนา 0.15m. 2 ทางตรง มีฐาน 2RB9@0.15/ปอ@0.15 (กรม ทางหลวง TYPE D)",
+      "supplierUom": "บ่อ",
+      "rvnItemCode": "300631019",
+      "rvnItemName": "Manhole R.C. for Pipe Dia 0.80 m , 1.30x1.30x1.60x 0.15 m. Type D 2ทางตรง",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "F05-0525",
+      "supplierItemName": "ท่อคอนกรีตขนาด 100 ซม. ยาว 100 ซม. (ท่อ คอนกรีตอัดแรง คสล. มอก.ชั้น 3)",
+      "supplierUom": "ท่อน",
+      "rvnItemCode": "300630006",
+      "rvnItemName": "R.C. Pipe Culverts Dia 1.0 m x 1.0 m. ท่อ ค.ส.ล มอก.128 -2560 Type Class III",
+      "rvnUom": "Meter"
+    }
+  ],
+  "บริษัท ทักษิณคอนกรีต จำกัด (มหาชน)": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เสาเข็ม 0.40x0.40x9.00 ม. (ส4DB25x6.00)",
+      "supplierUom": "",
+      "rvnItemCode": "300741031",
+      "rvnItemName": "เสาเข็ม คอนกรีตอัดแรง สี่เหลี่ยม ขนาด 0.40x0.40x 9 m.",
+      "rvnUom": "Each"
+    }
+  ],
+  "บริษัท ที.เอ็ม.ตะแกรงเหล็ก จำกัด": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "B90 9.0x9.0mm. @ 150x150mm. 9.90x3.40m. ตะแกรงเหล็ก(กลม)",
+      "supplierUom": "",
+      "rvnItemCode": "300531002",
+      "rvnItemName": "wiremesh RB 9mm.@15x15cm.",
+      "rvnUom": "Square meter"
+    }
+  ],
+  "บริษัท ทีพีไอ โพลีน จำกัด (มหาชน)": [
+    {
+      "supplierItemCode": "111",
+      "supplierItemName": "ปูนTPIแดงHydraulicCement (GU) ผง",
+      "supplierUom": "",
+      "rvnItemCode": "300320001",
+      "rvnItemName": "ปูนซีเมนต์ผง Hydraulic Cement - Bulk truck : 30 +/- Ton",
+      "rvnUom": "Ton"
+    },
+    {
+      "supplierItemCode": "191299",
+      "supplierItemName": "ปูนแดง299HydraulicCement (GU) ผง",
+      "supplierUom": "",
+      "rvnItemCode": "300320001",
+      "rvnItemName": "ปูนซีเมนต์ผง Hydraulic Cement - Bulk truck : 30 +/- Ton",
+      "rvnUom": "Ton"
+    },
+    {
+      "supplierItemCode": "1110P",
+      "supplierItemName": "ปูนปอร์ตแลนด์TPIพลัส(P)ผง",
+      "supplierUom": "",
+      "rvnItemCode": "300310001",
+      "rvnItemName": "ปูนซีเมนต์ผง Ordinary Portland Cement (OPC) type I - Bulk 30 +/- Ton",
+      "rvnUom": "Ton"
+    }
+  ],
+  "บริษัท เหล็กทรัพย์ จำกัด": [
+    {
+      "supplierItemCode": "RBM1S240601000",
+      "supplierItemName": "เหล็กเส้นกลม 6มมx10มSR24 ตรง",
+      "supplierUom": "Piece",
+      "rvnItemCode": "300510001",
+      "rvnItemName": "เหล็กเส้นกลมผิวเรียบ มอก.20-2543 RB6x10ม",
+      "rvnUom": "Pieces"
+    },
+    {
+      "supplierItemCode": "RBM1S240901000",
+      "supplierItemName": "เหล็กเส้นกลม 9มมx10มSR24 ตรง",
+      "supplierUom": "Piece",
+      "rvnItemCode": "300510002",
+      "rvnItemName": "เหล็กเส้นกลมผิวเรียบ มอก.20-2543 RB9x10ม",
+      "rvnUom": "Pieces"
+    },
+    {
+      "supplierItemCode": "DBM1S401201000T",
+      "supplierItemName": "เหล็กข้ออ้อย 12มมx10มSD40 ตรง (T)",
+      "supplierUom": "Piece",
+      "rvnItemCode": "300524002",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB12x10ม",
+      "rvnUom": "Pieces"
+    },
+    {
+      "supplierItemCode": "DBM1S401601000T",
+      "supplierItemName": "เหล็กข้ออ้อย 16มมx10มSD40 ตรง (T)",
+      "supplierUom": "Piece",
+      "rvnItemCode": "300524003",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB16x10ม",
+      "rvnUom": "Pieces"
+    },
+    {
+      "supplierItemCode": "DBM1S402501200",
+      "supplierItemName": "เหล็กข้ออ้อย 25มมx12มSD40 ตรง",
+      "supplierUom": "Piece",
+      "rvnItemCode": "300521012",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB25x12ม Non T",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "EEW80181",
+      "supplierItemName": "ลวดดำ #18",
+      "supplierUom": "ROL",
+      "rvnItemCode": "300530001",
+      "rvnItemName": "ลวดผูกเหล็ก มอก138-2518 no.18 : wt 2.5 kg+/-",
+      "rvnUom": "Roll"
+    },
+    {
+      "supplierItemCode": "DBM1S401201000",
+      "supplierItemName": "เหล็กข้ออ้อย 12มมx10มSD40 ตรง",
+      "supplierUom": "PC",
+      "rvnItemCode": "300521015",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB12x10ม Non T",
+      "rvnUom": "Pieces"
+    },
+    {
+      "supplierItemCode": "DBM1S401201200",
+      "supplierItemName": "เหล็กข้ออ้อย 12มมx12มSD40 ตรง",
+      "supplierUom": "PC",
+      "rvnItemCode": "300521009",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB12x12ม Non T",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "DBM1S401601000",
+      "supplierItemName": "เหล็กข้ออ้อย 16มมx10มSD40 ตรง",
+      "supplierUom": "PC",
+      "rvnItemCode": "300521003",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB16x10ม Non T",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "DBM1S402001000",
+      "supplierItemName": "เหล็กข้ออ้อย 20มมx10มSD40 ตรง",
+      "supplierUom": "PC",
+      "rvnItemCode": "300521017",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB20x10ม Non T",
+      "rvnUom": "Pieces"
+    },
+    {
+      "supplierItemCode": "DBM1S402501000",
+      "supplierItemName": "เหล็กข้ออ้อย 25มมx10มSD40 ตรง",
+      "supplierUom": "PC",
+      "rvnItemCode": "300521005",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB25x10ม Non T",
+      "rvnUom": "Pieces"
+    }
+  ],
+  "บริษัท ไทยไวร์โพรดัคท์ จำกัด (มหาชน)": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "\"PC STRAND-7WIRE ORDINARY RELAX SIZE : 9.5 mm. GRADE : 1860 N/mm. TYPE : 7 WIRE ORDINARY LOW RELAX, S-LAY SPEC : มอก. 420-2540\"",
+      "supplierUom": "TON",
+      "rvnItemCode": "300530005",
+      "rvnItemName": "PC Strand",
+      "rvnUom": "KG"
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "\"PC WIRE-SI SIZE : 7.00 mm GRADE : 1670 N/mm TYPE : 4 INDENTED LOW RELAX SPEC : มอก.95-2540\"",
+      "supplierUom": "TON",
+      "rvnItemCode": "300530004",
+      "rvnItemName": "PC Wire",
+      "rvnUom": "KG"
+    }
+  ],
+  "บริษัท ไทยพรีเมี่ยมไพพ์ จำกัด": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "Sonic Logging Pipe 2\" (OD50.8) x 1.40 x 6000 mm",
+      "supplierUom": "เส้น",
+      "rvnItemCode": "300541001",
+      "rvnItemName": "Sonic Logging Pipe",
+      "rvnUom": "pcs"
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "ข้อต่อตรง (Coupler) สวม OD 50.8 x 1.40 x ยาว 150 mm",
+      "supplierUom": "เส้น",
+      "rvnItemCode": "301430013",
+      "rvnItemName": "ข้อต่อตรง",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "ข้องอ 90 องศา สวม OD50.8 หนา 1.40 ยาว 150 mm.",
+      "supplierUom": "เส้น",
+      "rvnItemCode": "301430014",
+      "rvnItemName": "ข้องอ 90 องศา",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "RUBBER SLEEVE",
+      "supplierUom": "ชิ้น",
+      "rvnItemCode": "301430015",
+      "rvnItemName": "Bubber sleeve",
+      "rvnUom": "Each"
+    }
+  ],
+  "บริษัท ไทยอุดมคอนกรีต (1993) จำกัด": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เสาเข็ม 0.40x0.40x4.00 ม.",
+      "supplierUom": "ต้น",
+      "rvnItemCode": "300741032",
+      "rvnItemName": "เสาเข็ม คอนกรีตอัดแรง สี่เหลี่ยม ขนาด 0.40x0.40x4 m.",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เสาเข็ม 0.45x0.45x6.00 ม.",
+      "supplierUom": "ต้น",
+      "rvnItemCode": "300741013",
+      "rvnItemName": "เสาเข็ม คอนกรีตอัดแรง สี่เหลี่ยม ขนาด 0.45x0.45x6 m.",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เสาเข็ม 0.45x0.45x5.00 ม.",
+      "supplierUom": "ต้น",
+      "rvnItemCode": "300741021",
+      "rvnItemName": "เสาเข็ม คอนกรีตอัดแรง สี่เหลี่ยม ขนาด 0.45x0.45x5 m.",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เสาเข็ม 0.525x0.525x6.00 ม.",
+      "supplierUom": "ต้น",
+      "rvnItemCode": "300741025",
+      "rvnItemName": "เสาเข็ม คอนกรีตอัดแรง สี่เหลี่ยม ขนาด 0.525x0.525x6 m.",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "Box Beam 0.70x0.99x19.95 ม. (outer)",
+      "supplierUom": "ตัว",
+      "rvnItemCode": "300871005",
+      "rvnItemName": "Box Beam 0.70 x 0.99 x 19.95 m. - outer",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "Box Beam 0.70x0.99x19.95 ม. (inner)",
+      "supplierUom": "ตัว",
+      "rvnItemCode": "300871006",
+      "rvnItemName": "Box Beam 0.70 x 0.99 x 19.95 m. - inner",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "Plank Girder 0.35x0.99x9.95 m. (ตัวริมไม่มีทางเท้า)",
+      "supplierUom": "ตัว",
+      "rvnItemCode": "300862041",
+      "rvnItemName": "Plank Girder : 0.35 x 0.99 x 9.95 m - outer",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "Plank Girder 0.35x0.99x9.95 m. (ตัวใน)",
+      "supplierUom": "ตัว",
+      "rvnItemCode": "300862040",
+      "rvnItemName": "Plank Girder : 0.35 x 0.99 x 9.95 m - inner",
+      "rvnUom": "Each"
+    }
+  ],
+  "ห้างหุ้นส่วนจำกัด ฉัตรชัยตรังคอนกรีต": [
+    {
+      "supplierItemCode": "05-0003-000120",
+      "supplierItemName": "R.C.PipeCulverts Dial.20mmx1.00mm",
+      "supplierUom": "ท่อน,ตัน",
+      "rvnItemCode": "300630007",
+      "rvnItemName": "R.C. Pipe Culverts Dia 1.2 m x 1.0 m. ท่อ ค.ส.ล มอก.128 -2560 Type Class III",
+      "rvnUom": "Meter"
+    },
+    {
+      "supplierItemCode": "07-0120-100025",
+      "supplierItemName": "Manhole R.C.fcrPipe Dia 1.20m",
+      "supplierUom": "ท่อน",
+      "rvnItemCode": "300631018",
+      "rvnItemName": "Manhole R.C. for Pipe Dia 1.2 m , 1.78x1.20x2.00x 0.15 m. Type Class III ทางตรง",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "06-0120-120100",
+      "supplierItemName": "R.C. Box Culverts 1.20x1.20x1.0m.",
+      "supplierUom": "ท่อน",
+      "rvnItemCode": "300640001",
+      "rvnItemName": "R.C. Box Culverts Side Drains size 2 : 1.20x1.20x1.0 m. มอก.1166-2559",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "05-0002-000040",
+      "supplierItemName": "R.C.Pipe Culverts Dia0.40mx1.0m",
+      "supplierUom": "ท่อน",
+      "rvnItemCode": "300620002",
+      "rvnItemName": "R.C. Pipe Culverts Dia 0.40 m x 1.0 m. ท่อ ค.ส.ล มอก.128 -2560 Type Class II",
+      "rvnUom": "Meter"
+    },
+    {
+      "supplierItemCode": "07-0040-100039",
+      "supplierItemName": "Monhole R.C.forPipeDia0.40mTypeB",
+      "supplierUom": "ท่อน",
+      "rvnItemCode": "300621021",
+      "rvnItemName": "Manhole R.C. for Pipe Dia 0.40 m , 1.10x1.10x0.90x0.15 m. Type B, 2 ทางตรง ดักตะกอน 0.30 m. (ไม่รวมผนังท่อ)",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "05-0002-000080",
+      "supplierItemName": "R.C.PipeCulverts Dia0.80mmx1.00mm",
+      "supplierUom": "ท่อน",
+      "rvnItemCode": "300620005",
+      "rvnItemName": "R.C. Pipe Culverts Dia 0.80 m x 1.0 m. ท่อ ค.ส.ล มอก.128 -2560 Type Class II",
+      "rvnUom": "Meter"
+    },
+    {
+      "supplierItemCode": "05-0002-000100",
+      "supplierItemName": "R.C.PipeCulverts Dial.00m mx1.00 mm",
+      "supplierUom": "ท่อน",
+      "rvnItemCode": "300620006",
+      "rvnItemName": "R.C. Pipe Culverts Dia 1.0 m x 1.0 m. ท่อ ค.ส.ล มอก.128 -2560 Type Class II",
+      "rvnUom": "Meter"
+    }
+  ],
+  "บริษัท ปัตตานีโลจิสติกส์(2009) จำกัด": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "ปูนซีเมนต์ อินทรีเพชร ไฮดรอลิก 1.5 ตัน",
+      "supplierUom": "",
+      "rvnItemCode": "300320001",
+      "rvnItemName": "ปูนซีเมนต์ผง Hydraulic Cement - Bulk truck : 30 +/- Ton",
+      "rvnUom": "Ton"
+    }
+  ],
+  "บริษัท ปูนซีเมนต์เอเซีย จำกัด (มหาชน)": [
+    {
+      "supplierItemCode": "100238",
+      "supplierItemName": "ปูนซีเมนต์ปอร์ตแลนด์ประเภท 1 บัวแดง โปรเวิร์ค - ผง",
+      "supplierUom": "",
+      "rvnItemCode": "300310001",
+      "rvnItemName": "ปูนซีเมนต์ผง Ordinary Portland Cement (OPC) type I - Bulk 30 +/- Ton",
+      "rvnUom": "Ton"
+    }
+  ],
+  "บริษัท ร่อนทองชัย โฮมมาร์ท จำกัด": [
+    {
+      "supplierItemCode": "20018504",
+      "supplierItemName": "ปูนผง ประเภท 1 SCG",
+      "supplierUom": "ตัน",
+      "rvnItemCode": "300310001",
+      "rvnItemName": "ปูนซีเมนต์ผง Ordinary Portland Cement (OPC) type I - Bulk 30 +/- Ton",
+      "rvnUom": "Ton"
+    },
+    {
+      "supplierItemCode": "20020051",
+      "supplierItemName": "ปูนผงเอสซีจี สูตรไฮบริด",
+      "supplierUom": "ตัน",
+      "rvnItemCode": "300320001",
+      "rvnItemName": "ปูนซีเมนต์ผง Hydraulic Cement - Bulk truck : 30 +/- Ton",
+      "rvnUom": "Ton"
+    },
+    {
+      "supplierItemCode": "DC-00734",
+      "supplierItemName": "\"คอนกรีตทั่วไป (งานราชการ) กำลังอัด 357 กก./ตร.ซม. 35NZB0ABBZ Concrete Standard : Strength 357 cube, Slump 7.5 +/- 2.5 cm.\"",
+      "supplierUom": "คิวบิค",
+      "rvnItemCode": "300420016",
+      "rvnItemName": "Concrete Standard : Strength 357 cube, Slump 7.5+/-2.5 cm.",
+      "rvnUom": "CU.M"
+    }
+  ],
+  "บริษัท ดูโฮม จำกัด (มหาชน)": [
+    {
+      "supplierItemCode": "10016171",
+      "supplierItemName": "ข้ออ้อยSD40 12*10มต.",
+      "supplierUom": "เส้น",
+      "rvnItemCode": "300524002",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB12x10ม",
+      "rvnUom": "Pieces"
+    }
+  ],
+  "บริษัท กวีวรรณผลิตภัณฑ์คอนกรีต จำกัด": [
+    {
+      "supplierItemCode": "08-บรฆ 100",
+      "supplierItemName": "บ่อพักปากระฆังขนาด 100 ซม.",
+      "supplierUom": "บ่อ",
+      "rvnItemCode": "300631021",
+      "rvnItemName": "Manhole R.C. for Pipe Dia 1.00 m , 1.30x1.00x1.80x 0.20 m.",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "07-รฆ3-100",
+      "supplierItemName": "ท่อปากระฆัง 100x250 ซม.",
+      "supplierUom": "ท่อน",
+      "rvnItemCode": "300632006",
+      "rvnItemName": "R.C. Bell Pipe Dia 1.00 m x 2.5 m. ท่อ ปากระฆัง ค.ส.ล มอก.128 -2560 Type Class I",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "07-รฆ3-40",
+      "supplierItemName": "ท่อปากระฆัง 40x250 ซม.",
+      "supplierUom": "ท่อน",
+      "rvnItemCode": "300632002",
+      "rvnItemName": "R.C. Bell Pipe Dia 0.40 m x 2.5 m. ท่อ ปากระฆัง ค.ส.ล มอก.128 -2560 Type Class I",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "09-ทร-40X110",
+      "supplierItemName": "ท่อเรียบขนาด 40x110 ซม.",
+      "supplierUom": "ท่อน",
+      "rvnItemCode": "300632009",
+      "rvnItemName": "R.C. Bell Pipe Dia 1.00 m x 1.1 m. ท่อ ปากระฆัง ค.ส.ล มอก.128 -2560 Type Class I",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "10-ยอร-100",
+      "supplierItemName": "ยางโอริงสวมท่อปากระฆัง ขนาด 100 ซม.",
+      "supplierUom": "เส้น",
+      "rvnItemCode": "???",
+      "rvnItemName": "???",
+      "rvnUom": ""
+    },
+    {
+      "supplierItemCode": "10-ยอร-40",
+      "supplierItemName": "ยางโอริงสวมท่อปากระฆัง ขนาด 40 ซม.",
+      "supplierUom": "เส้น",
+      "rvnItemCode": "???",
+      "rvnItemName": "???",
+      "rvnUom": ""
+    }
+  ],
+  "บริษัท ดี เมทัล จำกัด": [
+    {
+      "supplierItemCode": "01-00-000000101",
+      "supplierItemName": "เส้นกลม25มิล*10ม.SR24(ตรง)",
+      "supplierUom": "",
+      "rvnItemCode": "300510006",
+      "rvnItemName": "เหล็กเส้นกลมผิวเรียบ มอก.20-2543 SR24 : RB25x10ม",
+      "rvnUom": "Pieces"
+    },
+    {
+      "supplierItemCode": "01-00-000000441.1",
+      "supplierItemName": "ข้ออ้อย12มิล*10ม.SD40(ตรง)NT",
+      "supplierUom": "",
+      "rvnItemCode": "300521015",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB12x10ม Non T",
+      "rvnUom": "Pieces"
+    },
+    {
+      "supplierItemCode": "01-00-000000461.1",
+      "supplierItemName": "ข้ออ้อย16มิล*10ม.SD40(ตรง)NT",
+      "supplierUom": "",
+      "rvnItemCode": "300521003",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB16x10ม Non T",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "01-00-000000501.1",
+      "supplierItemName": "ข้ออ้อย25มิล*10ม.SD40(ตรง)NT",
+      "supplierUom": "",
+      "rvnItemCode": "300521005",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB25x10ม Non T",
+      "rvnUom": "Pieces"
+    },
+    {
+      "supplierItemCode": "01-00-000000021",
+      "supplierItemName": "เส้นกลม9มิล*10ม.SR24(ตรง)",
+      "supplierUom": "",
+      "rvnItemCode": "300510002",
+      "rvnItemName": "เหล็กเส้นกลมผิวเรียบ มอก.20-2543 SR24 : RB9x10ม",
+      "rvnUom": "Pieces"
+    },
+    {
+      "supplierItemCode": "01-00-000000661",
+      "supplierItemName": "ข้ออ้อย28มิล*12ม.SD40(ตรง)T",
+      "supplierUom": "",
+      "rvnItemCode": "300524013",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB28x12ม",
+      "rvnUom": "Pieces"
+    },
+    {
+      "supplierItemCode": "01-00-000000441",
+      "supplierItemName": "\" ข้ออ้อย12มิล*10ม. SD40(ตรง)T ยี่ห้อ TATA\"",
+      "supplierUom": "",
+      "rvnItemCode": "300524002",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB12x10ม",
+      "rvnUom": "Pieces"
+    },
+    {
+      "supplierItemCode": "01-00-000000601",
+      "supplierItemName": "\"ข้ออ้อย16มิล*12ม. SD40(ตรง)T ยี่ห้อ TATA\"",
+      "supplierUom": "",
+      "rvnItemCode": "300524010",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB16x12ม",
+      "rvnUom": "Pieces"
+    },
+    {
+      "supplierItemCode": "01-00-000000021",
+      "supplierItemName": "\" เส้นกลม9มิล*10ม. SR24(ตรง) ยี่ห้อ TATA\"",
+      "supplierUom": "",
+      "rvnItemCode": "300510002",
+      "rvnItemName": "เหล็กเส้นกลมผิวเรียบ มอก.20-2543 SR24 : RB9x10ม",
+      "rvnUom": "Pieces"
+    }
+  ],
+  "บริษัท ช.รุ่งแสงไลท์ติ้ง จำกัด": [
+    {
+      "supplierItemCode": "SEAC-BKTE-2PC-0000-SET1",
+      "supplierItemName": "แผ่นใส้AL+เบรกWSB1-63 2PC106KAขาว+เทอร์ฯTC60A-4P (เดี่ยว)**",
+      "supplierUom": "",
+      "rvnItemCode": "301130010",
+      "rvnItemName": "อุปกรณ์ประจำเสาไฟฟ้า",
+      "rvnUom": "Set"
+    },
+    {
+      "supplierItemCode": "SIFA-STKR-D3M-0015-0015",
+      "supplierItemName": "สติ๊กเกอร์สะท้อนแสงสีส้ม3M DIAMOND ขนาด15*15CM.",
+      "supplierUom": "",
+      "rvnItemCode": "301370008",
+      "rvnItemName": "สติ๊กเกอร์สะท้อนแสง",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "41007",
+      "supplierItemName": "สายไฟ CV 3x10 sq.mm.",
+      "supplierUom": "",
+      "rvnItemCode": "301260016",
+      "rvnItemName": "สายไฟ CV 2Cx25 mm.",
+      "rvnUom": "Meter"
+    }
+  ],
+  "บริษัท วริศพงศ์ กรุ๊ป จำกัด": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "การ์ดเรล WRP หนา 2.5 มม. มอก.248-2567",
+      "supplierUom": "ม.",
+      "rvnItemCode": "301210008",
+      "rvnItemName": "การ์ดเรล WRP หนา 2.5 mm.",
+      "rvnUom": "Meter"
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เสาการ์ดเรล ทช. (16ซม.) หนา4มม. ยาว2ม.",
+      "supplierUom": "ต้น",
+      "rvnItemCode": "301210004",
+      "rvnItemName": "แผ่นการ์ดเรล 2.5 มม. ยาว 4.32 ม. (แผ่นตรง)",
+      "rvnUom": "Each"
+    }
+  ],
+  "บริษัท เดอะ สตีล จำกัด (มหาชน)": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เหล็กเส้นข้ออ้อย 12.0 MM × 12 M SD40T",
+      "supplierUom": "เส้น",
+      "rvnItemCode": "300524009",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB12x12ม",
+      "rvnUom": "Pieces"
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เหล็กเส้นข้ออ้อย 16.0 MM × 10 M SD40T",
+      "supplierUom": "เส้น",
+      "rvnItemCode": "300524003",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB16x10ม",
+      "rvnUom": "Pieces"
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เหล็กเส้นข้ออ้อย 16.0 MM × 12 M SD40T",
+      "supplierUom": "เส้น",
+      "rvnItemCode": "300524010",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB16x12ม",
+      "rvnUom": "Pieces"
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เหล็กเส้นข้ออ้อย 25.0 MM × 10 M SD40T",
+      "supplierUom": "เส้น",
+      "rvnItemCode": "300524005",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB25x10ม",
+      "rvnUom": "Pieces"
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เหล็กเส้นข้ออ้อย 28.0MMX10M SD40T",
+      "supplierUom": "เส้น",
+      "rvnItemCode": "300524006",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB28x10ม",
+      "rvnUom": "Pieces"
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เหล็กเส้นข้ออ้อย 28.0MMX12M SD40T",
+      "supplierUom": "เส้น",
+      "rvnItemCode": "300524013",
+      "rvnItemName": "เหล็กเส้นกลมข้ออ้อย มอก.20-2548 SD40 : DB28x12ม",
+      "rvnUom": "Pieces"
+    }
+  ],
+  "บริษัท ดับบลิวเอ็มไอ ไวร์เมช จำกัด": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "\"ตะแกรงเหล็กข้ออ้อย 9.00 mm@15 cm. ขนาด 3 × 9.9 m. \"",
+      "supplierUom": "ตรม.",
+      "rvnItemCode": "300531012",
+      "rvnItemName": "\"wiremesh DB 9mm.@15x15cm. , 3.00x9.90m. \"",
+      "rvnUom": "Square meter"
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "\"ตะแกรงเหล็กข้ออ้อย 9.00 mm@15 cm. ขนาด 3.4 × 9.9 m. \"",
+      "supplierUom": "ตรม.",
+      "rvnItemCode": "300531013",
+      "rvnItemName": "wiremesh DB 9mm.@15x15cm. , 3.40x9.90m.",
+      "rvnUom": "Square meter"
+    }
+  ],
+  "บริษัท เคดี เทค กรุ๊ป จำกัด": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "\"TC-90 เคมีบำบัดน้ำเสีย (จุลินทรีย์เติมบ่อบำบัด/307700001)\"",
+      "supplierUom": "กิโลกรัม",
+      "rvnItemCode": "307700001",
+      "rvnItemName": "จุลินทรีย์เติมบ่อบำบัด",
+      "rvnUom": "Kilogram"
+    }
+  ],
+  "บริษัท โตโยต้า ภูเก็ต มอเตอร์ส จำกัด": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "\"GUN120R-CTTLXT/A6 REVO Smart Cab Z Edition 2.4 Entry AT \"",
+      "supplierUom": "คัน",
+      "rvnItemCode": "???",
+      "rvnItemName": "???",
+      "rvnUom": ""
+    }
+  ],
+  "บริษัท ก พัฒนาผลิตภัณฑ์คอนกรีต จำกัด": [
+    {
+      "supplierItemCode": "10-OG3050",
+      "supplierItemName": "O-Gutter 0.30x0.50x0.50x2.00 ม.",
+      "supplierUom": "ท่อน",
+      "rvnItemCode": "300650010",
+      "rvnItemName": "KDB Concrete Drain 0.50x0.50x2.0 m.",
+      "rvnUom": "Each"
+    }
+  ],
+  "บริษัท ท๊อปแลนด์ คอนกรีต จำกัด": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "\"เสาเข็ม I กอร. ขนาด 0.40x0.40x6.00 เมตร (16-PC Strand 9.5 mm.) (4-DB25x6.00 m. หัวเข็ม +4-DB16x1.50 m. ปลายเข็ม)\"",
+      "supplierUom": "ต้น",
+      "rvnItemCode": "300741034",
+      "rvnItemName": "\"เสาเข็ม คอนกรีตอัดแรง สี่เหลี่ยม ขนาด 0.40x0.40x6 m. \"",
+      "rvnUom": "Each"
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "\"เสาเข็ม I กอร. ขนาด 0.40x0.40x8.00 เมตร (16-PC Strand 9.5 mm.) (4-DB25x6.00 m. หัวเข็ม +4-DB16x1.50 m. ปลายเข็ม)\"",
+      "supplierUom": "ต้น",
+      "rvnItemCode": "300741024",
+      "rvnItemName": "เสาเข็ม คอนกรีตอัดแรง สี่เหลี่ยม ขนาด 0.40x0.40x8 m.",
+      "rvnUom": "Each"
+    }
+  ],
+  "บริษัท ทุ่งคาคอนกรีต จำกัด": [
+    {
+      "supplierItemCode": "4450060",
+      "supplierItemName": "เข็ม S0.45x0.45x6.00ม. ปลายแหลม (RC)",
+      "supplierUom": "ต้น",
+      "rvnItemCode": "300741013",
+      "rvnItemName": "เสาเข็ม คอนกรีตอัดแรง สี่เหลี่ยม ขนาด 0.45x0.45x6 m.",
+      "rvnUom": "Each"
+    }
+  ],
+  "บริษัท ส.อรุณ คอนกรีต จำกัด": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "ท่อระบายน้ำ ขนาด 1.00 เมตร (คสล.2)",
+      "supplierUom": "ท่อน",
+      "rvnItemCode": "300620006",
+      "rvnItemName": "R.C. Pipe Culverts Dia 1.0 m x 1.0 m. ท่อ ค.ส.ล มอก.128 -2560 Type Class II",
+      "rvnUom": "Meter"
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "ท่อระบายน้ำ ขนาด 1.00 เมตร (คสล.3)",
+      "supplierUom": "ท่อน",
+      "rvnItemCode": "300630006",
+      "rvnItemName": "R.C. Pipe Culverts Dia 1.0 m x 1.0 m. ท่อ ค.ส.ล มอก.128 -2560 Type Class III",
+      "rvnUom": "Meter"
+    }
+  ]
+};
+
+const BASE_ROWS = [
+  {
+    "id": 1,
+    "invoiceNo": "INV-2026-0101",
+    "poNo": "PO-0201",
+    "supplierNameOcr": "บริษัท เกียรติทยากร เมททัล จำกัด",
+    "ocrItemCode": "25-s28-32050CD9",
+    "ocrDesc": "เพลาดำ 32mm.x50cm",
+    "matchType": "Exact",
+    "matchResult": "เพลาดำ 32mm.x50cm.",
+    "confidence": 100,
+    "poQty": "500",
+    "poUnitPrice": "12.50",
+    "poExVat": "6,250.00",
+    "poUOM": "ส",
+    "invQty": "500",
+    "invUnitPrice": "12.50",
+    "invExVat": "6,250.00",
+    "invUOM": "ส"
+  },
+  {
+    "id": 2,
+    "invoiceNo": "INV-2026-0102",
+    "poNo": "PO-0202",
+    "supplierNameOcr": "บริษัท เกียรติทยากร เมททัล จำกัด",
+    "ocrItemCode": "01-TAT-160764050",
+    "ocrDesc": "DBSD4016mm.x0.76m.",
+    "matchType": "Exact",
+    "matchResult": "DB SD40 16mm.x0.76m.",
+    "confidence": 100,
+    "poQty": "30",
+    "poUnitPrice": "42.00",
+    "poExVat": "1,260.00",
+    "poUOM": "ส",
+    "invQty": "30",
+    "invUnitPrice": "42.00",
+    "invExVat": "1,260.00",
+    "invUOM": "ส"
+  },
+  {
+    "id": 3,
+    "invoiceNo": "INV-2026-0103",
+    "poNo": "PO-0203",
+    "supplierNameOcr": "บริษัท พี.โอเวอร์ซีส์ สตีล จำกัด (มหาชน)",
+    "ocrItemCode": "",
+    "ocrDesc": "เหล็กเสนขอออย SD40 25 มม. X 12 ม. ตรง",
+    "matchType": "Fuzzy",
+    "matchResult": "เหล็กเส้นข้ออ้อย SD40 25 มม. X 12 ม. ตรง",
+    "confidence": 94,
+    "characterErrorRate": 8.2,
+    "poQty": "1,200",
+    "poUnitPrice": "28.50",
+    "poExVat": "34,200.00",
+    "poUOM": "หน่วย",
+    "invQty": "1,200",
+    "invUnitPrice": "28.50",
+    "invExVat": "34,200.00",
+    "invUOM": "หน่วย"
+  },
+  {
+    "id": 4,
+    "invoiceNo": "INV-2026-0104",
+    "poNo": "PO-0204",
+    "supplierNameOcr": "บริษัท พรีคอน (ประเทศไทย) จำกัด",
+    "ocrItemCode": "F05-0521",
+    "ocrDesc": "ทอคอนกรีตขนาด80ซม.ยาว100ชม.(ทอคอนกรีตอัดแรงคสล.มอก.ชัน3)",
+    "matchType": "Fuzzy",
+    "matchResult": "ท่อคอนกรีตขนาด 80 ซม. ยาว 100 ชม. (ท่อคอนกรีต อัดแรง คสล. มอก.ชั้น 3)",
+    "confidence": 87,
+    "poQty": "40",
+    "poUnitPrice": "950.00",
+    "poExVat": "38,000.00",
+    "poUOM": "ท่อน",
+    "invQty": "40",
+    "invUnitPrice": "950.00",
+    "invExVat": "38,000.00",
+    "invUOM": "ท่อน"
+  },
+  {
+    "id": 5,
+    "invoiceNo": "INV-2026-0105",
+    "poNo": "PO-0205",
+    "supplierNameOcr": "บริษัท ทีพีไอ โพลีน จำกัด (มหาชน)",
+    "ocrItemCode": "191299",
+    "ocrDesc": "ปูนแดง299HydraulicCement(GU)ผง",
+    "matchType": "Fuzzy",
+    "matchResult": "ปูนแดง299HydraulicCement (GU) ผง",
+    "confidence": 68,
+    "poQty": "500",
+    "poUnitPrice": "185.00",
+    "poExVat": "92,500.00",
+    "poUOM": "หน่วย",
+    "invQty": "480",
+    "invUnitPrice": "185.00",
+    "invExVat": "88,800.00",
+    "invUOM": "หน่วย"
+  },
+  {
+    "id": 6,
+    "invoiceNo": "INV-2026-0106",
+    "poNo": "PO-0206",
+    "supplierNameOcr": "บริษัท เจดับบลิวที โฮลดิ้ง จำกัด",
+    "ocrItemCode": "",
+    "ocrDesc": "ปูนผงเอสซีจี ปอร์ตแลนด์ประเภท 3",
+    "matchType": "Fuzzy",
+    "matchResult": "ปูนผงเอสซีจี ปอร์ตแลนด์ประเภท 3",
+    "confidence": 82,
+    "poQty": "10",
+    "poUnitPrice": "45,000.00",
+    "poExVat": "450,000.00",
+    "poUOM": "ตัน",
+    "invQty": "10",
+    "invUnitPrice": "45,000.00",
+    "invExVat": "450,000.00",
+    "invUOM": "ตัน"
+  },
+  {
+    "id": 7,
+    "invoiceNo": "INV-2026-0107",
+    "poNo": "PO-0207",
+    "supplierNameOcr": "บริษัท ไทยไวร์โพรดัคท์ จำกัด (มหาชน)",
+    "ocrItemCode": "",
+    "ocrDesc": "PC STRAND-7WIRE ORDINARY RELAX SIZE : 9.5 mm. GRADE : 1860 N/mm. TYPE : 7 WIRE ORDINARY LOW RELAX, S-LAY SPEC : มอก. 420-2540",
+    "matchType": "Fuzzy",
+    "matchResult": "\"PC STRAND-7WIRE ORDINARY RELAX SIZE : 9.5 mm. GRADE : 1860 N/mm. TYPE : 7 WIRE ORDINARY LOW RELAX, S-LAY SPEC : มอก. 420-2540\"",
+    "confidence": 90,
+    "poQty": "200",
+    "poUnitPrice": "32.00",
+    "poExVat": "6,400.00",
+    "poUOM": "TON",
+    "invQty": "200",
+    "invUnitPrice": "32.00",
+    "invExVat": "6,400.00",
+    "invUOM": "TON"
+  },
+  {
+    "id": 8,
+    "invoiceNo": "INV-2026-0108",
+    "poNo": "PO-0208",
+    "supplierNameOcr": "บริษัท เหล็กทรัพย์ จำกัด",
+    "ocrItemCode": "RBM1S240601000",
+    "ocrDesc": "เหล็กเสนกลม6มมx10มSR24ตรง",
+    "matchType": "Fuzzy",
+    "matchResult": "เหล็กข้ออ้อย 16มมx10มSD40 ตรง (T)",
+    "confidence": 15,
+    "poQty": "50",
+    "poUnitPrice": "210.00",
+    "poExVat": "10,500.00",
+    "poUOM": "Piece",
+    "invQty": "50",
+    "invUnitPrice": "210.00",
+    "invExVat": "10,500.00",
+    "invUOM": "Piece"
+  },
+  {
+    "id": 9,
+    "invoiceNo": "INV-2026-0109",
+    "poNo": "PO-0209",
+    "supplierNameOcr": "บริษัท ดี เมทัล จำกัด",
+    "ocrItemCode": "01-00-000000101",
+    "ocrDesc": "เส้นกลม25มิล*10ม.SR24(ตรง)",
+    "matchType": "Exact",
+    "matchResult": "เส้นกลม25มิล*10ม.SR24(ตรง)",
+    "confidence": 100,
+    "poQty": "300",
+    "poUnitPrice": "45.00",
+    "poExVat": "13,500.00",
+    "poUOM": "หน่วย",
+    "invQty": "300",
+    "invUnitPrice": "47.50",
+    "invExVat": "14,250.00",
+    "invUOM": "หน่วย"
+  },
+  {
+    "id": 10,
+    "invoiceNo": "INV-2026-0110",
+    "poNo": "PO-0210",
+    "supplierNameOcr": "บริษัท เดอะ สตีล จำกัด (มหาชน)",
+    "ocrItemCode": "",
+    "ocrDesc": "เหล็กเสนขอออย 12.0 MM × 12 M SD40T",
+    "matchType": "Fuzzy",
+    "matchResult": "เหล็กเส้นข้ออ้อย 12.0 MM × 12 M SD40T",
+    "confidence": 96,
+    "poQty": "80",
+    "poUnitPrice": "620.00",
+    "poExVat": "49,600.00",
+    "poUOM": "เส้น",
+    "invQty": "80",
+    "invUnitPrice": "620.00",
+    "invExVat": "49,600.00",
+    "invUOM": "ท่อน"
+  },
+  {
+    "id": 11,
+    "invoiceNo": "INV-2026-0111",
+    "poNo": "PO-0211",
+    "supplierNameOcr": "บริษัท ไทยพรีเมี่ยมไพพ์ จำกัด",
+    "ocrItemCode": "",
+    "ocrDesc": "ข้อต่อตรง (C0upler) สวม 0D 50.8 x 1.40 x ยาว 150 mm",
+    "matchType": "Fuzzy",
+    "matchResult": "ข้อต่อตรง (Coupler) สวม OD 50.8 x 1.40 x ยาว 150 mm",
+    "confidence": 73,
+    "poQty": "150",
+    "poUnitPrice": "88.00",
+    "poExVat": "13,200.00",
+    "poUOM": "เส้น",
+    "invQty": "150",
+    "invUnitPrice": "88.00",
+    "invExVat": "13,200.00",
+    "invUOM": "เส้น"
+  },
+  {
+    "id": 12,
+    "invoiceNo": "INV-2026-0112",
+    "poNo": "PO-0212",
+    "supplierNameOcr": "บริษัท ที.เอ็ม.ตะแกรงเหล็ก จำกัด",
+    "ocrItemCode": "",
+    "ocrDesc": "B909.0x9.0mm.@150x150mm.9.90x3.40m.ตะแกรงเหล็ก(กลม)",
+    "matchType": "Fuzzy",
+    "matchResult": "B90 9.0x9.0mm. @ 150x150mm. 9.90x3.40m. ตะแกรงเหล็ก(กลม)",
+    "confidence": 97,
+    "poQty": "60",
+    "poUnitPrice": "320.00",
+    "poExVat": "19,200.00",
+    "poUOM": "หน่วย",
+    "invQty": "60",
+    "invUnitPrice": "320.00",
+    "invExVat": "19,200.00",
+    "invUOM": "หน่วย"
+  },
+  {
+    "id": 13,
+    "invoiceNo": "INV-2026-0113",
+    "poNo": "PO-0213",
+    "supplierNameOcr": "บริษัท ร่อนทองชัย โฮมมาร์ท จำกัด",
+    "ocrItemCode": "",
+    "ocrDesc": "ปูนผงประเภท1SCG",
+    "matchType": "Fuzzy",
+    "matchResult": "ปูนผง ประเภท 1 SCG",
+    "confidence": 61,
+    "poQty": "25",
+    "poUnitPrice": "1,250.00",
+    "poExVat": "31,250.00",
+    "poUOM": "ตัน",
+    "invQty": "25",
+    "invUnitPrice": "1,250.00",
+    "invExVat": "31,250.00",
+    "invUOM": "ตัน"
+  },
+  {
+    "id": 14,
+    "invoiceNo": "INV-2026-0114",
+    "poNo": "PO-0214",
+    "supplierNameOcr": "บริษัท ไทยอุดมคอนกรีต (1993) จำกัด",
+    "ocrItemCode": "",
+    "ocrDesc": "เสาเข็ม 0.40x0.40x4.00 ม",
+    "matchType": "Fuzzy",
+    "matchResult": "เสาเข็ม 0.40x0.40x4.00 ม.",
+    "confidence": 97,
+    "poQty": "15",
+    "poUnitPrice": "3,800.00",
+    "poExVat": "57,000.00",
+    "poUOM": "ต้น",
+    "invQty": "15",
+    "invUnitPrice": "3,800.00",
+    "invExVat": "57,000.00",
+    "invUOM": "ต้น"
+  },
+  {
+    "id": 15,
+    "invoiceNo": "INV-2026-0114",
+    "poNo": "PO-0214",
+    "supplierNameOcr": "บริษัท ไทยอุดมคอนกรีต (1993) จำกัด",
+    "ocrItemCode": "",
+    "ocrDesc": "เสาเข็ม 0.45x0.45x6.00 ม",
+    "matchType": "Fuzzy",
+    "matchResult": "เสาเข็ม 0.45x0.45x6.00 ม.",
+    "confidence": 97,
+    "poQty": "15",
+    "poUnitPrice": "3,900.00",
+    "poExVat": "58,500.00",
+    "poUOM": "ต้น",
+    "invQty": "15",
+    "invUnitPrice": "3,900.00",
+    "invExVat": "58,500.00",
+    "invUOM": "ต้น"
+  },
+  {
+    "id": 16,
+    "invoiceNo": "INV-2026-0116",
+    "poNo": "PO-0216",
+    "supplierNameOcr": "ห้างหุ้นส่วนจำกัด ฉัตรชัยตรังคอนกรีต",
+    "ocrItemCode": "05-0003-000120",
+    "ocrDesc": "R.C.PipeCulverts Dial.20mmx1.00mm",
+    "matchType": "Fuzzy",
+    "matchResult": "R.C.PipeCulverts Dial.20mmx1.00mm",
+    "confidence": 91,
+    "poQty": "40",
+    "poUnitPrice": "2,650.00",
+    "poExVat": "106,000.00",
+    "poUOM": "ท่อน,ตัน",
+    "invQty": "40",
+    "invUnitPrice": "2,650.00",
+    "invExVat": "106,000.00",
+    "invUOM": "ท่อน,ตัน"
+  },
+  {
+    "id": 17,
+    "invoiceNo": "INV-2026-0117",
+    "poNo": "PO-0217",
+    "supplierNameOcr": "บริษัท กวีวรรณผลิตภัณฑ์คอนกรีต จำกัด",
+    "ocrItemCode": "07-รฆ3-40",
+    "ocrDesc": "ทอปากระฆัง40x250ซม.",
+    "matchType": "Fuzzy",
+    "matchResult": "ท่อปากระฆัง 40x250 ซม.",
+    "confidence": 55,
+    "poQty": "100",
+    "poUnitPrice": "145.00",
+    "poExVat": "14,500.00",
+    "poUOM": "ท่อน",
+    "invQty": "100",
+    "invUnitPrice": "150.00",
+    "invExVat": "15,000.00",
+    "invUOM": "ท่อน"
+  },
+  {
+    "id": 18,
+    "invoiceNo": "INV-2026-0118",
+    "poNo": "PO-0218",
+    "supplierNameOcr": "บริษัท ดับบลิวเอ็มไอ ไวร์เมช จำกัด",
+    "ocrItemCode": "",
+    "ocrDesc": "\"ตะแกรงเหล็กข้ออ้อย9.00mm@15cm.ขนาด3×9.9m.\"",
+    "matchType": "Fuzzy",
+    "matchResult": "\"ตะแกรงเหล็กข้ออ้อย 9.00 mm@15 cm. ขนาด 3 × 9.9 m. \"",
+    "confidence": 97,
+    "poQty": "20",
+    "poUnitPrice": "5,200.00",
+    "poExVat": "104,000.00",
+    "poUOM": "ตรม.",
+    "invQty": "20",
+    "invUnitPrice": "5,200.00",
+    "invExVat": "104,000.00",
+    "invUOM": "ตรม."
+  },
+  {
+    "id": 19,
+    "invoiceNo": "INV-2026-0119",
+    "poNo": "PO-0219",
+    "supplierNameOcr": "บริษัท ท๊อปแลนด์ คอนกรีต จำกัด",
+    "ocrItemCode": "",
+    "ocrDesc": "เสาเข็ม I กอร. ขนาด 0.40x0.40x6.00 เมตร (16-PC Strand 9.5 mm.) (4-DB25x6.00 m. หัวเข็ม +4-DB16x1.50 m. ปลายเข็ม)",
+    "matchType": "Fuzzy",
+    "matchResult": "\"เสาเข็ม I กอร. ขนาด 0.40x0.40x6.00 เมตร (16-PC Strand 9.5 mm.) (4-DB25x6.00 m. หัวเข็ม +4-DB16x1.50 m. ปลายเข็ม)\"",
+    "confidence": 93,
+    "poQty": "8",
+    "poUnitPrice": "12,500.00",
+    "poExVat": "100,000.00",
+    "poUOM": "ต้น",
+    "invQty": "8",
+    "invUnitPrice": "12,500.00",
+    "invExVat": "100,000.00",
+    "invUOM": "ต้น"
+  },
+  {
+    "id": 20,
+    "invoiceNo": "INV-2026-0120",
+    "poNo": "PO-0220",
+    "supplierNameOcr": "บริษัท ทุ่งคาคอนกรีต จำกัด",
+    "ocrItemCode": "4450060",
+    "ocrDesc": "เข็ม S0.45x0.45x6.00ม. ปลายแหลม (RC)",
+    "matchType": "Fuzzy",
+    "matchResult": "เข็ม S0.45x0.45x6.00ม. ปลายแหลม (RC)",
+    "confidence": 79,
+    "poQty": "60",
+    "poUnitPrice": "890.00",
+    "poExVat": "53,400.00",
+    "poUOM": "ต้น",
+    "invQty": "58",
+    "invUnitPrice": "890.00",
+    "invExVat": "51,620.00",
+    "invUOM": "ต้น"
+  },
+  {
+    "id": 21,
+    "invoiceNo": "INV-2026-0121",
+    "poNo": "PO-0221",
+    "supplierNameOcr": "บริษัท ส.อรุณ คอนกรีต จำกัด",
+    "ocrItemCode": "",
+    "ocrDesc": "ท่อระบายน้ำ ขนาด 1.00 เมตร (คสล.2)",
+    "matchType": "Fuzzy",
+    "matchResult": "ท่อระบายน้ำ ขนาด 1.00 เมตร (คสล.2)",
+    "confidence": 97,
+    "poQty": "45",
+    "poUnitPrice": "1,150.00",
+    "poExVat": "51,750.00",
+    "poUOM": "ท่อน",
+    "invQty": "45",
+    "invUnitPrice": "1,150.00",
+    "invExVat": "51,750.00",
+    "invUOM": "ท่อน"
+  },
+  {
+    "id": 22,
+    "invoiceNo": "INV-2026-0122",
+    "poNo": "PO-0222",
+    "supplierNameOcr": "บริษัท ไทยไวร์โพรดัคท์ จำกัด (มหาชน)",
+    "ocrItemCode": "",
+    "ocrDesc": "\"PCWIRE-SISIZE:7.00mmGRADE:1670N/mmTYPE:4INDENTEDLOWRELAXSPEC:มอก.95-2540\"",
+    "matchType": "Fuzzy",
+    "matchResult": "\"PC WIRE-SI SIZE : 7.00 mm GRADE : 1670 N/mm TYPE : 4 INDENTED LOW RELAX SPEC : มอก.95-2540\"",
+    "confidence": 66,
+    "poQty": "100",
+    "poUnitPrice": "55.00",
+    "poExVat": "5,500.00",
+    "poUOM": "TON",
+    "invQty": "100",
+    "invUnitPrice": "55.00",
+    "invExVat": "5,500.00",
+    "invUOM": "TON"
+  },
+  {
+    "id": 23,
+    "invoiceNo": "INV-2026-0123",
+    "poNo": "PO-0223",
+    "supplierNameOcr": "บริษัท วริศพงศ์ กรุ๊ป จำกัด",
+    "ocrItemCode": "",
+    "ocrDesc": "การ์ดเรลWRPหนา2.5มม.มอก.248-2567",
+    "matchType": "Fuzzy",
+    "matchResult": "การ์ดเรล WRP หนา 2.5 มม. มอก.248-2567",
+    "confidence": 97,
+    "poQty": "12",
+    "poUnitPrice": "8,900.00",
+    "poExVat": "106,800.00",
+    "poUOM": "ม.",
+    "invQty": "12",
+    "invUnitPrice": "8,900.00",
+    "invExVat": "106,800.00",
+    "invUOM": "ม."
+  },
+  {
+    "id": 24,
+    "invoiceNo": "INV-2026-0124",
+    "poNo": "PO-0224",
+    "supplierNameOcr": "บริษัท เคดี เทค กรุ๊ป จำกัด",
+    "ocrItemCode": "",
+    "ocrDesc": "\"TC-90 เคมีบำบัดนำเสีย (จุลินทรีย์เติมบอบำบัด/307700001)\"",
+    "matchType": "Fuzzy",
+    "matchResult": "\"TC-90 เคมีบำบัดน้ำเสีย (จุลินทรีย์เติมบ่อบำบัด/307700001)\"",
+    "confidence": 97,
+    "poQty": "5",
+    "poUnitPrice": "15,600.00",
+    "poExVat": "78,000.00",
+    "poUOM": "กิโลกรัม",
+    "invQty": "5",
+    "invUnitPrice": "15,600.00",
+    "invExVat": "78,000.00",
+    "invUOM": "กิโลกรัม"
+  }
+];
+
+const PERF_SUPPLIERS = Object.keys(SUPPLIER_MASTER).slice(0, 10);
+const EXTRA_ROWS = [];
+for (let i = 0; i < 90; i++) {
+  const supplier = PERF_SUPPLIERS[i % PERF_SUPPLIERS.length];
+  const pool = SUPPLIER_MASTER[supplier];
+  const item = pool[i % pool.length];
+  const confidence = 30 + ((i * 7) % 71);
+  const isExact = confidence >= 97 && !!item.supplierItemCode;
+  const qty = 10 + (i % 40) * 25;
+  const price = (1 + (i % 15) * 3.4).toFixed(2);
+  const exVat = (qty * parseFloat(price)).toFixed(2);
+  const uom = item.supplierUom || "หน่วย";
+  EXTRA_ROWS.push({
+    id: 1000 + i,
+    invoiceNo: "INV-2026-" + (500 + i),
+    poNo: "PO-" + (600 + i),
+    supplierNameOcr: supplier,
+    ocrItemCode: item.supplierItemCode,
+    ocrDesc: item.supplierItemName,
+    matchType: isExact ? "Exact" : "Fuzzy",
+    matchResult: item.supplierItemName,
+    confidence: isExact ? 100 : confidence,
+    poQty: qty.toLocaleString("en-US"),
+    poUnitPrice: price,
+    poExVat: Number(exVat).toLocaleString("en-US", { minimumFractionDigits: 2 }),
+    poUOM: uom,
+    invQty: qty.toLocaleString("en-US"),
+    invUnitPrice: price,
+    invExVat: Number(exVat).toLocaleString("en-US", { minimumFractionDigits: 2 }),
+    invUOM: uom,
+  });
+}
+
+// Business rule: a Supplier Item Code (OCR) is treated as a reliable identifier — if OCR
+// captured one, the row is always an Exact match at 100% confidence, overriding whatever
+// match result the data source (mock generator or an imported file) originally carried.
+function applyItemCodeExactRule(row) {
+  const hasItemCode = !!(row.ocrItemCode && String(row.ocrItemCode).trim());
+  return hasItemCode ? { ...row, matchType: "Exact", confidence: 100 } : row;
+}
+
+// Fills a deterministic synthetic Character Error Rate for any Fuzzy mock row that doesn't
+// already have one hand-specified — keeps the 3-tier pass/fail rule (isRowPassing) exercised
+// across the whole mock dataset without hand-editing every row.
+function withDefaultCharacterErrorRate(row) {
+  if (row.matchType !== "Fuzzy" || row.characterErrorRate !== undefined) return row;
+  return { ...row, characterErrorRate: (row.id * 13) % 15 };
+}
+
+// Synthetic documentId so the export round-trip (§ document_id) is eyeball-verifiable against
+// the mock dataset without needing a real imported file during dev/testing.
+function withMockDocumentId(row) {
+  return { ...row, documentId: "DOC-" + row.id };
+}
+
+const RAW_ROWS = BASE_ROWS.concat(EXTRA_ROWS).map(applyItemCodeExactRule).map(withDefaultCharacterErrorRate).map(withMockDocumentId);
+
+// Validation progress persists in localStorage until export succeeds — refreshing or
+// closing the tab must not lose a user's in-progress review of a batch.
+const STORAGE_KEY = "imv_validation_state";
+const SCHEMA_VERSION = 4;
+
+function loadPersistedRows() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.version === SCHEMA_VERSION && Array.isArray(parsed.rows)) {
+      return parsed.rows;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function persistRows(rows) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SCHEMA_VERSION, rows }));
+  } catch {}
+}
+
+function clearPersistedRows() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {}
+}
+
+function findMasterItem(supplier, desc, code) {
+  const pool = SUPPLIER_MASTER[supplier] || [];
+  // Item code is a more reliable match key than the free-text name — codes rarely have the
+  // spelling/spacing drift that trips up exact name matching, so prefer it when OCR has one.
+  if (code) {
+    const byCode = pool.find(it => it.supplierItemCode && it.supplierItemCode === code);
+    if (byCode) return byCode;
+  }
+  return pool.find(it => it.supplierItemName === desc) || null;
+}
+
+const FUZZY_CONFIDENCE_THRESHOLD = 92;
+const CHARACTER_ERROR_RATE_THRESHOLD = 7.5;
+
+// A row passes (green, no manual review needed) only when the match is Exact, or when it's
+// Fuzzy AND both confidence and character error rate clear their own bar — confidence alone is
+// no longer enough for Fuzzy rows. Still a single pass/fail boolean feeding the same 2-color
+// badge as before (3-color flags were explicitly rejected earlier in this project) — only the
+// computation behind "pass" got stricter, not the display.
+function isRowPassing(matchType, confidence, characterErrorRate) {
+  if (matchType === "Exact") return true;
+  const cer = Number(characterErrorRate);
+  return confidence >= FUZZY_CONFIDENCE_THRESHOLD && Number.isFinite(cer) && cer <= CHARACTER_ERROR_RATE_THRESHOLD;
+}
+
+function diffStrings(a, b) {
+  const n = a.length, m = b.length;
+  const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) {
+    dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  }
+  let i = 0, j = 0; const aParts = []; const bParts = [];
+  while (i < n && j < m) {
+    if (a[i] === b[j]) { aParts.push({ ch: a[i], same: true }); bParts.push({ ch: b[j], same: true }); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) { aParts.push({ ch: a[i], same: false }); i++; }
+    else { bParts.push({ ch: b[j], same: false }); j++; }
+  }
+  while (i < n) { aParts.push({ ch: a[i], same: false }); i++; }
+  while (j < m) { bParts.push({ ch: b[j], same: false }); j++; }
+  return { aParts, bParts };
+}
+
+function groupRuns(parts, removedStyle, addedStyle) {
+  const runs = [];
+  for (const p of parts) {
+    const style = p.same ? "" : (removedStyle || addedStyle);
+    if (runs.length && runs[runs.length - 1].same === p.same) runs[runs.length - 1].text += p.ch;
+    else runs.push({ text: p.ch, same: p.same, style });
+  }
+  return runs;
+}
+
+function styleObj(str) {
+  if (!str) return undefined;
+  const obj = {};
+  str.split(";").forEach(rule => {
+    const idx = rule.indexOf(":");
+    if (idx === -1) return;
+    const prop = rule.slice(0, idx).trim();
+    const val = rule.slice(idx + 1).trim();
+    if (!prop || !val) return;
+    const camel = prop.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+    obj[camel] = val;
+  });
+  return obj;
+}
+
+// Bangkok has no DST, but the browser running this app might not be set to Thailand time —
+// use Intl explicitly rather than trusting the system's local clock/timezone.
+function formatBangkokTimestamp(date) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(date);
+  const get = type => parts.find(p => p.type === type).value;
+  return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")}`;
+}
+
+function buildExportRows(displayRows) {
+  // Generated fresh per export call (not the import time) — re-exporting later reflects that
+  // later moment, not when the batch was first pulled in.
+  const exportedAt = formatBangkokTimestamp(new Date());
+
+  // Passthrough columns (unknown-to-this-app headers from the import file, e.g. an ad hoc
+  // "Note" column) vary per file — export the union of every header seen across all rows,
+  // using each column's own original header text, blank where a row didn't have it.
+  const passthroughHeaders = [];
+  const seenHeaders = new Set();
+  displayRows.forEach(r => Object.keys(r.passthroughFields || {}).forEach(header => {
+    if (!seenHeaders.has(header)) { seenHeaders.add(header); passthroughHeaders.push(header); }
+  }));
+
+  return displayRows.map(r => {
+    const out = {
+      "Invoice No.": r.invoiceNo,
+      "Supplier Name (OCR)": r.supplierNameOcr,
+      "Selected Supplier": r.selectedSupplier,
+      "Supplier Item Code (OCR)": r.ocrItemCode,
+      "OCR Result (Description)": r.ocrDesc,
+      "Match Type": r.matchType,
+      "Matching Model Result": r.matchResult,
+      "Confidence (%)": r.confidence,
+      "RVN Item Code": r.selectedItem ? r.selectedItem.rvnItemCode : "",
+      "RVN Item Name": r.selectedItem ? r.selectedItem.rvnItemName : "",
+      "Invoice Qty": r.invQty,
+      "Invoice Unit Price": r.invUnitPrice,
+      "Invoice ex.VAT": r.invExVat,
+      "Invoice UOM": r.invUOM,
+    };
+    OPTIONAL_IMPORT_COLUMNS.forEach(([, field, label]) => {
+      out[label] = r[field] !== undefined ? r[field] : "";
+    });
+    out["Document ID"] = r.documentId || "";
+    passthroughHeaders.forEach(header => {
+      const value = (r.passthroughFields || {})[header];
+      out[header] = value !== undefined ? value : "";
+    });
+    out["Confirmed By"] = r.isUserConfirmed ? "User" : (r.isAutoFilled ? "Auto" : "");
+    out["Exported At"] = exportedAt;
+    return out;
+  });
+}
+
+function buildExportWorkbook(displayRows) {
+  const data = buildExportRows(displayRows);
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Item Mapping Validated");
+  return wb;
+}
+
+// Writes the export in place to a file the user picked once (via the File System Access API,
+// Chrome/Edge only — reusing the same handle on every export instead of downloading a new
+// dated file each time). Falls back to a normal download when that API isn't available (e.g.
+// Firefox/Safari) or the user cancels the picker.
+async function writeExportFile(displayRows, fileHandleRef) {
+  const wb = buildExportWorkbook(displayRows);
+
+  if (window.showSaveFilePicker) {
+    try {
+      if (!fileHandleRef.current) {
+        fileHandleRef.current = await window.showSaveFilePicker({
+          suggestedName: "Item_Mapping_Validated.xlsx",
+          types: [{ description: "Excel file", accept: { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"] } }],
+        });
+      }
+      const bytes = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+      const writable = await fileHandleRef.current.createWritable();
+      await writable.write(bytes);
+      await writable.close();
+      return true;
+    } catch (err) {
+      if (err && err.name === "AbortError") return false; // user cancelled the picker
+      fileHandleRef.current = null; // handle went stale/invalid — fall back below
+    }
+  }
+
+  const dateStr = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `Item_Mapping_Validated_${dateStr}.xlsx`);
+  return true;
+}
+
+// Column headers must match exactly what IT's OCR + matching pipeline outputs (agreed spec).
+// PO columns (PO No/Qty/Unit Price/Amount ex.VAT/UOM) were dropped from the required import
+// spec — the app no longer asks IT for PO data at all, matching the on-screen removal of PO
+// display. Re-add them here if a future export/import spec brings PO back.
+const CHARACTER_ERROR_RATE_HEADER = "Character Error Rate"; // TODO: exact header pending IT confirmation
+const IMPORT_COLUMNS = [
+  ["Invoice No", "invoiceNo"],
+  ["Supplier Name (OCR)", "supplierNameOcr"],
+  ["Supplier Item Code (OCR)", "ocrItemCode"],
+  ["Item Description (OCR)", "ocrDesc"],
+  ["Invoice Qty", "invQty"],
+  ["Invoice Unit Price", "invUnitPrice"],
+  ["Invoice Amount ex.VAT", "invExVat"],
+  ["Invoice UOM", "invUOM"],
+  ["Match Type", "matchType"],
+  ["Matched Item Name", "matchResult"],
+  ["Confidence (%)", "confidence"],
+  [CHARACTER_ERROR_RATE_HEADER, "characterErrorRate"],
+];
+const IMPORT_NUMERIC_FIELDS = ["invQty", "invUnitPrice", "invExVat"];
+
+// document_id isn't shown anywhere on screen — it exists purely so IT can round-trip a link
+// back to the source document through the exported file. Optional on import (not required —
+// early test files from IT may not have it yet), blank-safe.
+const DOCUMENT_ID_HEADER = "document_id"; // TODO: exact header pending IT confirmation
+
+// Closed list of supplier-specific Invoice-only fields (Discount, Freight, Deposit, Rounding,
+// Weight, ...). Replaces an earlier fully-dynamic "any extra column becomes a field"
+// approach — IT confirmed the real set is exactly these 6, so anything else in the sheet
+// beyond IMPORT_COLUMNS/this list/document_id is now deliberately ignored, not auto-displayed.
+// [excel header, internal field name, display label] — label is separate from the header so
+// the on-screen "ข้อมูลเพิ่มเติมจาก Invoice" section can show its own copy independent of
+// whatever exact text IT ends up using for the column.
+const OPTIONAL_IMPORT_COLUMNS = [
+  ["Invoice Discount by Line", "discountByLine", "Invoice Discount by Line"],
+  ["Invoice Discount at end of bill", "discountEndOfBill", "Invoice Discount at end of bill"],
+  ["Invoice Delivery fee", "deliveryFee", "Invoice Delivery fee"],
+  ["Invoice Weight", "weight", "Invoice Weight"],
+  ["Invoice Deposit", "deposit", "Invoice Deposit"],
+  ["Invoice Rounding", "rounding", "Invoice Rounding"],
+];
+
+// Mirrors the formatting commitEditField() applies to manually-edited numeric cells,
+// so imported and hand-edited values render identically.
+function formatImportedNumber(raw) {
+  const num = typeof raw === "number" ? raw : parseFloat(String(raw).replace(/,/g, ""));
+  if (isNaN(num)) return "";
+  const hasDecimal = num % 1 !== 0;
+  return num.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: hasDecimal ? 2 : 0 });
+}
+
+function findMissingImportColumns(sheetRows) {
+  if (!sheetRows.length) return IMPORT_COLUMNS.map(([header]) => header);
+  const headers = Object.keys(sheetRows[0]);
+  return IMPORT_COLUMNS.filter(([header]) => !headers.includes(header)).map(([header]) => header);
+}
+
+// Every header this app recognizes by name — anything else in the sheet is "unknown" to it.
+function knownImportHeaders() {
+  return IMPORT_COLUMNS.map(([header]) => header)
+    .concat(OPTIONAL_IMPORT_COLUMNS.map(([header]) => header))
+    .concat([DOCUMENT_ID_HEADER]);
+}
+
+function parseImportedRows(sheetRows) {
+  const known = knownImportHeaders();
+  const passthroughHeaders = sheetRows.length ? Object.keys(sheetRows[0]).filter(h => !known.includes(h)) : [];
+
+  return sheetRows.map((raw, idx) => {
+    const row = { id: idx + 1 };
+    IMPORT_COLUMNS.forEach(([header, field]) => {
+      let value = raw[header] !== undefined ? raw[header] : "";
+      if (IMPORT_NUMERIC_FIELDS.includes(field)) value = formatImportedNumber(value);
+      else if (field === "confidence") value = Math.round(Math.max(0, Math.min(100, Number(value) || 0)));
+      else if (field === "matchType") value = String(value).trim() === "Exact" ? "Exact" : "Fuzzy";
+      else if (field === "characterErrorRate") value = value === "" || value === undefined ? NaN : Number(value);
+      row[field] = value;
+    });
+
+    OPTIONAL_IMPORT_COLUMNS.forEach(([header, field]) => {
+      const rawValue = raw[header];
+      if (rawValue === undefined || rawValue === null || String(rawValue).trim() === "") {
+        row[field] = undefined;
+        return;
+      }
+      const numeric = formatImportedNumber(rawValue);
+      row[field] = numeric !== "" ? numeric : String(rawValue);
+    });
+
+    row.documentId = raw[DOCUMENT_ID_HEADER] !== undefined ? String(raw[DOCUMENT_ID_HEADER]) : "";
+
+    // Columns this app doesn't recognize (e.g. an ad hoc "Note" column IT adds) are never
+    // shown on screen — but the raw values are still carried through untouched so the export
+    // can round-trip them back out. IT may rely on data in these columns downstream even
+    // though this screen has no use for it.
+    row.passthroughFields = {};
+    passthroughHeaders.forEach(header => { row.passthroughFields[header] = raw[header]; });
+
+    return applyItemCodeExactRule(row);
+  });
+}
+
+// Debug-only switches (no props panel in the standalone app; flip in code to preview these states).
+const SIMULATE_ERROR = false;
+const SIMULATE_EMPTY_DATA = false;
+const FORCE_CONFIRM_ALL = false;
+
+function App() {
+  const { useState, useEffect, useRef } = React;
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [sortDir, setSortDir] = useState(null);
+  const [openCell, setOpenCell] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showOnlyReview, setShowOnlyReview] = useState(false);
+  const [expandedRows, setExpandedRows] = useState({});
+  const [rows, setRows] = useState(() => loadPersistedRows() || RAW_ROWS.map(r => ({ ...r })));
+  const [editingCell, setEditingCell] = useState(null);
+  const [editValue, setEditValue] = useState("");
+  const [hoveredField, setHoveredField] = useState(null);
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [importError, setImportError] = useState("");
+  const loadTimerRef = useRef(null);
+  const toastTimerRef = useRef(null);
+  const importInputRef = useRef(null);
+  const fileHandleRef = useRef(null);
+
+  useEffect(() => {
+    loadTimerRef.current = setTimeout(() => {
+      setIsLoading(false);
+      setHasError(SIMULATE_ERROR);
+    }, 900);
+    return () => {
+      clearTimeout(loadTimerRef.current);
+      clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    persistRows(rows);
+  }, [rows]);
+
+  function retryLoad() {
+    setIsLoading(true);
+    setHasError(false);
+    clearTimeout(loadTimerRef.current);
+    loadTimerRef.current = setTimeout(() => {
+      setIsLoading(false);
+      setHasError(SIMULATE_ERROR);
+    }, 900);
+  }
+
+  function openCellAt(rowId, type) { setOpenCell({ rowId, type }); setSearchQuery(""); }
+  function closeDropdown() { setOpenCell(null); setSearchQuery(""); }
+  function selectSupplier(rowId, supplier) {
+    setRows(rs => rs.map(r => r.id === rowId ? { ...r, selectedSupplier: supplier, selectedItem: null, userTouched: true } : r));
+    setOpenCell(null); setSearchQuery("");
+  }
+  function selectItem(rowId, item) {
+    setRows(rs => rs.map(r => r.id === rowId ? { ...r, selectedItem: item, userTouched: true } : r));
+    setOpenCell(null); setSearchQuery("");
+  }
+  function toggleExpand(rowId) {
+    setExpandedRows(er => ({ ...er, [rowId]: !er[rowId] }));
+  }
+  function setHoverField(rowId, field) {
+    setHoveredField(rowId ? { rowId, field } : null);
+  }
+  function startEditField(rowId, field, currentValue) {
+    setEditingCell({ rowId, field }); setEditValue(currentValue);
+  }
+  function cancelEditField() { setEditingCell(null); setEditValue(""); }
+  function commitEditField() {
+    if (!editingCell) return;
+    const { rowId, field } = editingCell;
+    const isNumeric = field !== "poUOM" && field !== "invUOM";
+    let finalValue = editValue;
+    if (isNumeric) {
+      const num = parseFloat(String(editValue).replace(/,/g, ""));
+      finalValue = isNaN(num) ? "" : num.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: (String(editValue).includes(".") ? 2 : 0) });
+    }
+    setRows(rs => rs.map(r => r.id === rowId ? { ...r, [field]: finalValue, edited: { ...(r.edited || {}), [field]: true } } : r));
+    setEditingCell(null); setEditValue("");
+  }
+  function bulkConfirmPassed() {
+    setRows(rs => rs.map(r => {
+      if (!isRowPassing(r.matchType, r.confidence, r.characterErrorRate)) return r;
+      const supplier = r.selectedSupplier !== undefined ? r.selectedSupplier : r.supplierNameOcr;
+      const item = r.selectedItem !== undefined ? r.selectedItem : findMasterItem(r.supplierNameOcr, r.matchResult, r.ocrItemCode);
+      return { ...r, selectedSupplier: supplier, selectedItem: item, userTouched: true };
+    }));
+  }
+  async function confirmExport() {
+    const wrote = await writeExportFile(displayRows, fileHandleRef);
+    if (!wrote) return; // user cancelled the file picker — leave state untouched
+    setShowExportConfirm(false);
+    fireToast(
+      fileHandleRef.current
+        ? "อัปเดตไฟล์ Excel สำเร็จแล้ว"
+        : "เสร็จสิ้นและส่งออกข้อมูลสำเร็จแล้ว"
+    );
+    clearPersistedRows();
+  }
+
+  function fireToast(message) {
+    setToastMessage(message);
+    setShowToast(true);
+    clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setShowToast(false), 2800);
+  }
+
+  // Shared core for both import paths (native file picker and the <input type="file">
+  // fallback) — takes a File/Blob, validates, and applies it to state.
+  async function importFromFile(file) {
+    const hasProgress = rows.some(r => r.userTouched || r.isUserConfirmed || (r.edited && Object.keys(r.edited).length));
+    if (hasProgress && !window.confirm("มีข้อมูลที่กำลังตรวจสอบอยู่ การนำเข้าไฟล์ใหม่จะแทนที่ข้อมูลเดิมทั้งหมด ต้องการดำเนินการต่อหรือไม่?")) {
+      return false;
+    }
+    try {
+      const data = new Uint8Array(await file.arrayBuffer());
+      const wb = XLSX.read(data, { type: "array" });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const sheetRows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+      if (!sheetRows.length) {
+        setImportError("ไฟล์นี้ไม่มีข้อมูล");
+        return false;
+      }
+      const missing = findMissingImportColumns(sheetRows);
+      if (missing.length) {
+        setImportError(`ไฟล์นี้ไม่มีคอลัมน์ที่จำเป็น: ${missing.join(", ")}`);
+        return false;
+      }
+
+      const parsed = parseImportedRows(sheetRows);
+      setRows(parsed);
+      setExpandedRows({});
+      setShowOnlyReview(false);
+      setImportError("");
+      fireToast(`นำเข้าไฟล์ Excel สำเร็จแล้ว (${parsed.length} รายการ)`);
+      return true;
+    } catch (err) {
+      setImportError("ไม่สามารถอ่านไฟล์นี้ได้ กรุณาตรวจสอบว่าเป็นไฟล์ Excel (.xlsx) ที่ถูกต้อง");
+      return false;
+    }
+  }
+
+  // Picks a file with read+write access so the SAME handle can later be reused by Export —
+  // matches the real workflow (one file round-tripped in place, same name every time) instead
+  // of importing from one file and exporting to a differently-named new one.
+  async function importViaFilePicker() {
+    setImportError("");
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description: "Excel file", accept: { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"] } }],
+        multiple: false,
+      });
+      const file = await handle.getFile();
+      const ok = await importFromFile(file);
+      if (ok) fileHandleRef.current = handle; // only repoint future exports on a successful parse
+    } catch (err) {
+      if (err && err.name === "AbortError") return; // user cancelled the picker
+      setImportError("ไม่สามารถอ่านไฟล์นี้ได้ กรุณาตรวจสอบว่าเป็นไฟล์ Excel (.xlsx) ที่ถูกต้อง");
+    }
+  }
+
+  function triggerImport() {
+    if (window.showOpenFilePicker) { importViaFilePicker(); return; }
+    setImportError("");
+    if (importInputRef.current) importInputRef.current.click();
+  }
+
+  // Fallback for browsers without the File System Access API (Firefox/Safari) — reads the
+  // file but can never get a writable handle, so Export from these browsers keeps using its
+  // own existing showSaveFilePicker-or-download fallback, unaffected by this path.
+  function handleImportFile(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    importFromFile(file);
+  }
+
+  const q = (searchQuery || "").toLowerCase();
+
+  const confMeta = (pass) => pass
+    ? { label: "ผ่าน", bg: "oklch(94% 0.035 150)", text: "oklch(35% 0.09 150)", dot: "oklch(55% 0.11 150)" }
+    : { label: "ต้องตรวจ", bg: "oklch(94% 0.045 25)", text: "oklch(42% 0.14 25)", dot: "oklch(58% 0.15 25)" };
+
+  const effectiveRows = SIMULATE_EMPTY_DATA ? [] : rows;
+
+  const displayRows = effectiveRows.map(r => {
+    const effConfidence = r.matchType === "Exact" ? 100 : r.confidence;
+    const pass = isRowPassing(r.matchType, r.confidence, r.characterErrorRate);
+    const defaultSupplier = (pass || FORCE_CONFIRM_ALL) ? r.supplierNameOcr : null;
+    const defaultItem = (pass || FORCE_CONFIRM_ALL) ? findMasterItem(r.supplierNameOcr, r.matchResult, r.ocrItemCode) : null;
+    const selectedSupplier = r.selectedSupplier !== undefined ? r.selectedSupplier : defaultSupplier;
+    const selectedItem = r.selectedItem !== undefined ? r.selectedItem : defaultItem;
+
+    const cm = confMeta(pass);
+    const confirmed = !!selectedItem;
+
+    const editable = (field, label, value) => {
+      const isEditing = !!editingCell && editingCell.rowId === r.id && editingCell.field === field;
+      const isEdited = !!(r.edited && r.edited[field]);
+      const isHovered = !!hoveredField && hoveredField.rowId === r.id && hoveredField.field === field;
+      return {
+        field, label, value, isEditing, notEditing: !isEditing,
+        isEdited,
+        showPencil: isHovered && !isEditing && !isEdited,
+        underline: isEdited ? "border-bottom:1px dashed var(--color-accent-700)" : "",
+        onStart: () => startEditField(r.id, field, value),
+        onHoverIn: () => setHoverField(r.id, field),
+        onHoverOut: () => setHoverField(null, null),
+      };
+    };
+    const invQtyF = editable("invQty", "Invoice Qty", r.invQty);
+    const invPriceF = editable("invUnitPrice", "Invoice Unit Price", r.invUnitPrice);
+    const invVatF = editable("invExVat", "Invoice ex.VAT", r.invExVat);
+    const invUomF = editable("invUOM", "Invoice UOM", r.invUOM);
+
+    // PO fields (poQty/poUnitPrice/poExVat/poUOM/poNo) are still imported and exported (§5 spec)
+    // but no longer rendered anywhere in the UI — the user asked for PO data to disappear from
+    // the web app entirely, keeping only the Invoice side visible/editable here.
+    // Always shown (considered, then explicitly rejected, hiding these when blank — unlike the
+    // 6 optional fields below) — a blank value shows the "ไม่ทราบค่า" placeholder instead.
+    const compareFields = [
+      { label: "Qty", invField: invQtyF },
+      { label: "Unit Price", invField: invPriceF },
+      { label: "ex.VAT", invField: invVatF },
+      { label: "UOM", invField: invUomF },
+    ];
+
+    // Invoice-only fields (Discount, Freight, Deposit, Rounding, Weight, ...) — a fixed, named
+    // list (§ OPTIONAL_IMPORT_COLUMNS), not a scan of unknown columns. No PO counterpart to
+    // diff against, so no mismatch styling/check here, just editable like the fields above.
+    const extraCompareFields = OPTIONAL_IMPORT_COLUMNS
+      .filter(([, field]) => r[field] !== undefined)
+      .map(([, field, label]) => ({ label, invField: editable(field, label, r[field]) }));
+
+    const diff = diffStrings(r.ocrDesc, r.matchResult);
+    const ocrDiffRuns = groupRuns(diff.aParts, "color:oklch(50% 0.18 25);text-decoration:line-through;background:oklch(94% 0.05 25)");
+    const modelDiffRuns = groupRuns(diff.bParts, null, "color:oklch(35% 0.13 150);background:oklch(94% 0.05 150)");
+
+    return {
+      ...r,
+      confidence: effConfidence,
+      selectedSupplier: selectedSupplier || "— ยังไม่เลือก —",
+      selectedItem,
+      confLabel: cm.label, confBg: cm.bg, confText: cm.text, confDot: cm.dot,
+      ocrHasCode: !!r.ocrItemCode, ocrMissing: !r.ocrItemCode,
+      matchTypeTagClass: r.matchType === "Exact" ? "tag tag-neutral" : "tag tag-accent",
+      confirmed,
+      isUserConfirmed: confirmed && !!r.userTouched,
+      isAutoFilled: confirmed && !r.userTouched,
+      supplierCellBg: confirmed ? "oklch(94% 0.045 150)" : "transparent",
+      // Shown on the confirm button — must read as the supplier's own item name (matches what
+      // the OCR text and the picker list already show), not the internal RVN catalog name,
+      // so the reviewer can visually confirm the match against the invoice at a glance.
+      itemButtonLabel: selectedItem ? selectedItem.supplierItemName : "เลือก item...",
+      onOpenSupplier: () => openCellAt(r.id, "supplier"),
+      onOpenItem: () => openCellAt(r.id, "item"),
+      compareFields, extraCompareFields,
+      ocrDiffRuns, modelDiffRuns,
+      isExpanded: !!expandedRows[r.id],
+      chevronStyle: expandedRows[r.id] ? "transform:rotate(90deg)" : "",
+      onToggleExpand: () => toggleExpand(r.id),
+    };
+  });
+
+  let sortedRows = displayRows;
+  if (sortDir === "asc") sortedRows = [...displayRows].sort((a, b) => a.confidence - b.confidence);
+  if (sortDir === "desc") sortedRows = [...displayRows].sort((a, b) => b.confidence - a.confidence);
+  if (showOnlyReview) sortedRows = sortedRows.filter(r => r.confLabel === "ต้องตรวจ");
+
+  const stats = {
+    total: effectiveRows.length,
+    exact: effectiveRows.filter(r => r.matchType === "Exact").length,
+    fuzzy: effectiveRows.filter(r => r.matchType === "Fuzzy").length,
+    pass: displayRows.filter(r => r.confLabel === "ผ่าน").length,
+    needsReview: displayRows.filter(r => r.confLabel === "ต้องตรวจ").length,
+    missingOcr: effectiveRows.filter(r => !r.ocrItemCode).length,
+    confirmed: displayRows.filter(r => r.confirmed).length,
+  };
+  stats.pending = stats.total - stats.confirmed;
+  const unconfirmedReview = displayRows.filter(r => r.confLabel === "ต้องตรวจ" && !r.confirmed).length;
+  // Export is no longer gated on every row being confirmed (reversed decision — see
+  // CLAUDE.md) — unconfirmedReview now only drives a non-blocking warning in the confirm
+  // dialog, not a hard block.
+  const exportDisabled = stats.total === 0;
+  const bulkDisabled = stats.pass === 0;
+
+  let dialogOptions = [];
+  let dialogTitle = "";
+  if (openCell) {
+    const activeRow = displayRows.find(r => r.id === openCell.rowId);
+    if (openCell.type === "supplier") {
+      dialogTitle = "เลือก Supplier";
+      dialogOptions = Object.keys(SUPPLIER_MASTER)
+        .filter(name => !q || name.toLowerCase().includes(q))
+        .map(name => ({ key: name, label: name, sub: "", onSelect: () => selectSupplier(openCell.rowId, name) }));
+    } else if (activeRow) {
+      dialogTitle = "เลือก Item";
+      const pool = SUPPLIER_MASTER[activeRow.selectedSupplier] || [];
+      dialogOptions = pool
+        .filter(it => !q || (it.supplierItemCode + it.supplierItemName).toLowerCase().includes(q))
+        .map((it, idx) => ({ key: (it.supplierItemCode || "noCode") + "-" + idx, label: it.supplierItemName, sub: "", onSelect: () => selectItem(openCell.rowId, it) }));
+    }
+  }
+
+  const isError = !isLoading && hasError;
+  const isEmpty = !isLoading && !hasError && stats.total === 0;
+  const showTable = !isLoading && !hasError && stats.total > 0;
+  const sortIconColor = sortDir ? "var(--color-accent-700)" : "currentColor";
+  const filterBtnClass = showOnlyReview ? "btn-primary" : "btn-secondary";
+  const exportTooltip = exportDisabled ? "ไม่มีข้อมูลให้ส่งออก" : "";
+  const bulkTooltip = bulkDisabled ? "ไม่มีแถวที่ผ่านเกณฑ์ให้ยืนยัน" : "";
+
+  return (
+    <div style={{ minHeight: "100vh", background: "var(--color-bg)", color: "var(--color-text)", fontFamily: "var(--font-body)" }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 24, padding: "28px 40px", borderBottom: "1px solid var(--color-divider)" }}>
+        <div>
+          <div style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent-700)", fontFamily: "var(--font-body)" }}>PO–Invoice–DO Mapping · RVN 1020</div>
+          <h1 style={{ marginTop: 4, fontFamily: "var(--font-body)" }}>Item Mapping Validation</h1>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "none" }}>
+          <input ref={importInputRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={handleImportFile} />
+          <button className="btn btn-secondary" style={{ flex: "none", whiteSpace: "nowrap" }} onClick={triggerImport}>
+            นำเข้าไฟล์ Excel
+          </button>
+          <span title={exportTooltip}>
+            <button className="btn btn-primary" style={{ flex: "none", whiteSpace: "nowrap", opacity: exportDisabled ? 0.45 : 1 }} disabled={exportDisabled} onClick={() => { if (!exportDisabled) setShowExportConfirm(true); }}>
+              เสร็จสิ้นและส่งออกข้อมูล
+            </button>
+          </span>
+        </div>
+      </div>
+
+      {importError && (
+        <div style={{ margin: "16px 40px 0", padding: "10px 14px", borderRadius: "var(--radius-md)", border: "1px solid oklch(58% 0.15 25)", background: "color-mix(in srgb, oklch(58% 0.15 25) 10%, transparent)", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <span>{importError}</span>
+          <button className="btn btn-ghost" style={{ fontSize: 12, padding: "2px 8px" }} onClick={() => setImportError("")}>ปิด</button>
+        </div>
+      )}
+
+      {isLoading && (
+        <div style={{ padding: "24px 40px 56px" }}>
+          <div style={{ display: "flex", gap: 16, marginBottom: 18 }}>
+            <div className="imv-skel" style={{ width: 160, height: 16 }}></div>
+            <div className="imv-skel" style={{ width: 160, height: 16 }}></div>
+            <div className="imv-skel" style={{ width: 160, height: 16 }}></div>
+          </div>
+          <div style={{ border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+            {[1, 2, 3, 4, 5, 6].map(sk => (
+              <div key={sk} className="imv-skel" style={{ width: "100%", height: 36 }}></div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {isError && (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, padding: "100px 24px", textAlign: "center" }}>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="oklch(45% 0.14 25)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          <div style={{ fontSize: 16 }}>ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง</div>
+          <button className="btn btn-secondary" onClick={retryLoad}>ลองใหม่</button>
+        </div>
+      )}
+
+      {isEmpty && (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, padding: "100px 24px", textAlign: "center", color: "color-mix(in srgb, var(--color-text) 55%, transparent)" }}>
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11H3v10h18V11h-6"></path><path d="M12 3v13"></path><path d="m8 8 4-5 4 5"></path></svg>
+          <div style={{ fontSize: 15 }}>ไม่มีรายการที่ต้องตรวจสอบในขณะนี้</div>
+        </div>
+      )}
+
+      {showTable && (
+        <div style={{ padding: "24px 40px 56px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap", marginBottom: 16, paddingBottom: 16, borderBottom: "1px solid var(--color-divider)" }}>
+            <div style={{ fontSize: 13 }}><span style={{ color: "color-mix(in srgb, var(--color-text) 55%, transparent)" }}>ทั้งหมด :</span> <strong style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600 }}>{stats.total}</strong></div>
+            <div style={{ fontSize: 13 }}><span style={{ color: "color-mix(in srgb, var(--color-text) 55%, transparent)" }}>ยืนยันแล้ว :</span> <strong style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--color-neutral-900)", fontWeight: 600 }}>{stats.confirmed}</strong></div>
+            <div style={{ fontSize: 13 }}><span style={{ color: "color-mix(in srgb, var(--color-text) 55%, transparent)" }}>Exact / Fuzzy :</span> <strong style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600 }}>{stats.exact} / {stats.fuzzy}</strong></div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 14, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "color-mix(in srgb, var(--color-text) 60%, transparent)" }}>
+              <span style={{ width: 9, height: 9, borderRadius: "50%", background: "oklch(55% 0.11 150)" }}></span>ผ่าน
+              <span style={{ width: 9, height: 9, borderRadius: "50%", background: "oklch(58% 0.15 25)", marginLeft: 10 }}></span>ต้องตรวจ/แก้ไข
+            </div>
+            <button className={`btn ${filterBtnClass}`} style={{ fontSize: 12, padding: "6px 12px" }} onClick={() => setShowOnlyReview(v => !v)}>แสดงเฉพาะที่ต้องตรวจ</button>
+            <span title={bulkTooltip}>
+              <button className="btn btn-primary" style={{ fontSize: 12, padding: "6px 12px", whiteSpace: "nowrap", opacity: bulkDisabled ? 0.45 : 1 }} disabled={bulkDisabled} onClick={() => { if (!bulkDisabled) bulkConfirmPassed(); }}>ยืนยันทั้งหมดที่ผ่านเกณฑ์ ({stats.pass})</button>
+            </span>
+            <div style={{ marginLeft: "auto", fontSize: 13, color: "color-mix(in srgb, var(--color-text) 60%, transparent)" }}>ยืนยันแล้ว {stats.confirmed} / {stats.total}</div>
+          </div>
+
+          <div style={{ overflowX: "auto", overflowY: "visible", border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)", position: "relative", background: "var(--color-bg)" }}>
+            <table className="table" style={{ minWidth: 1790, tableLayout: "fixed", borderCollapse: "separate", borderSpacing: 0 }}>
+              <thead>
+                <tr>
+                  <th style={{ width: 40 }}></th>
+                  <th style={{ width: 120 }}>Invoice No.</th>
+                  <th style={{ width: 210 }}>Supplier Name</th>
+                  <th style={{ width: 130 }}>Supplier Item Code (OCR)</th>
+                  <th style={{ width: 260 }}>OCR Result (Description)</th>
+                  <th style={{ width: 90 }}>Match Type</th>
+                  <th style={{ width: 260 }}>Matching Model Result</th>
+                  <th style={{ width: 180, cursor: "pointer", userSelect: "none" }} onClick={() => setSortDir(d => d === "desc" ? "asc" : (d === "asc" ? null : "desc"))}>
+                    % Confidence <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={sortIconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-1px" }}><path d="m21 16-4 4-4-4"></path><path d="M17 20V4"></path><path d="m3 8 4-4 4 4"></path><path d="M7 4v16"></path></svg>
+                  </th>
+                  <th style={{ width: 220 }}>เลือก Supplier</th>
+                  <th style={{ width: 280 }}>เลือก Item</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedRows.map(row => (
+                  <React.Fragment key={row.id}>
+                    <tr>
+                      <td>
+                        <button onClick={row.onToggleExpand} style={{ border: "none", background: "none", cursor: "pointer", padding: 4, display: "flex", color: "color-mix(in srgb, var(--color-text) 55%, transparent)" }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={styleObj(row.chevronStyle)}><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        </button>
+                      </td>
+                      <td>{row.invoiceNo}</td>
+                      <td style={{ background: row.supplierCellBg }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          {row.isUserConfirmed && (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="oklch(38% 0.1 150)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 17.01"></polyline></svg>
+                          )}
+                          {row.isAutoFilled && (
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="color-mix(in srgb, var(--color-text) 40%, transparent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 3"></path></svg>
+                          )}
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={row.supplierNameOcr}>{row.supplierNameOcr}</span>
+                        </div>
+                        {row.isUserConfirmed && <div style={{ fontSize: 10, color: "oklch(38% 0.1 150)", marginTop: 4 }}>ยืนยันแล้ว</div>}
+                        {row.isAutoFilled && <div style={{ fontSize: 10, color: "color-mix(in srgb, var(--color-text) 45%, transparent)", marginTop: 4 }}>ระบบเลือกให้</div>}
+                      </td>
+                      <td>
+                        {row.ocrMissing && (
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "oklch(45% 0.14 25)", fontSize: 12 }}>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            ไม่พบข้อมูล
+                          </span>
+                        )}
+                        {row.ocrHasCode && <span>{row.ocrItemCode}</span>}
+                      </td>
+                      <td style={{ whiteSpace: "normal", wordBreak: "break-word" }}>{row.ocrDiffRuns.map((run, i) => <span key={i} style={styleObj(run.style)}>{run.text}</span>)}</td>
+                      <td><span className={row.matchTypeTagClass} style={{ display: "inline-flex", padding: "3px 10px", borderRadius: 3, fontSize: 11 }}>{row.matchType}</span></td>
+                      <td style={{ whiteSpace: "normal", wordBreak: "break-word" }}>{row.modelDiffRuns.map((run, i) => <span key={i} style={styleObj(run.style)}>{run.text}</span>)}</td>
+                      <td>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: row.confBg, color: row.confText, padding: "4px 10px", borderRadius: 12, fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+                          <span style={{ width: 7, height: 7, borderRadius: "50%", background: row.confDot }}></span>
+                          {row.confidence}% · {row.confLabel}
+                        </span>
+                      </td>
+                      <td>
+                        <button className="btn btn-secondary" style={{ width: "100%", justifyContent: "space-between", fontFamily: "var(--font-body)", fontWeight: 400, fontSize: 13 }} onClick={row.onOpenSupplier}>
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.selectedSupplier}</span>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                      </td>
+                      <td>
+                        <button className="btn btn-secondary" style={{ width: "100%", justifyContent: "space-between", fontFamily: "var(--font-body)", fontWeight: 400, fontSize: 13 }} onClick={row.onOpenItem}>
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.itemButtonLabel}</span>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>                      </td>
+                    </tr>
+                    {row.isExpanded && (
+                      <tr>
+                        <td colSpan={10} style={{ background: "color-mix(in srgb, var(--color-text) 4%, var(--color-bg))", borderTop: "1px dashed var(--color-divider)", borderBottom: "1px solid var(--color-divider)", padding: "18px 24px", position: "relative", zIndex: 0 }}>
+                          <div style={{ fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", color: "color-mix(in srgb, var(--color-text) 55%, transparent)", marginBottom: 10 }}>Invoice Reference</div>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
+                            {row.compareFields.map((cf, i) => (
+                              <div key={i} style={{ border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)", padding: "10px 12px", background: "var(--color-bg)", position: "relative", zIndex: 1 }}>
+                                <div style={{ fontSize: 11, color: "color-mix(in srgb, var(--color-text) 55%, transparent)", marginBottom: 6 }}>{cf.label}</div>
+                                <div style={{ fontSize: 13, fontVariantNumeric: "tabular-nums", display: "flex", alignItems: "center", gap: 5, minHeight: 20 }}>
+                                  {cf.invField.isEditing ? (
+                                    <input className="input" style={{ padding: "2px 6px", minHeight: "auto", fontSize: 13, width: 100, background: "var(--color-bg)" }} value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") commitEditField(); if (e.key === "Escape") cancelEditField(); }} onBlur={commitEditField} autoFocus />
+                                  ) : (
+                                    <span style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, ...styleObj(cf.invField.underline) }} onClick={cf.invField.onStart} onMouseEnter={cf.invField.onHoverIn} onMouseLeave={cf.invField.onHoverOut}>
+                                      <span style={!cf.invField.value ? { fontStyle: "italic", color: "color-mix(in srgb, var(--color-text) 45%, transparent)" } : undefined}>{cf.invField.value || "ไม่ทราบค่า"}</span>
+                                      {cf.invField.isEdited && (
+                                        <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--color-accent-700)", flex: "none" }}></span>
+                                      )}
+                                      {cf.invField.showPencil && (
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="color-mix(in srgb, var(--color-text) 45%, transparent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {row.extraCompareFields.length > 0 && (
+                            <React.Fragment>
+                              <div style={{ fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", color: "color-mix(in srgb, var(--color-text) 55%, transparent)", margin: "14px 0 10px" }}>ข้อมูลเพิ่มเติมจาก Invoice</div>
+                              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
+                                {row.extraCompareFields.map((ef, i) => (
+                                  <div key={i} style={{ border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)", padding: "10px 12px", background: "var(--color-bg)", position: "relative", zIndex: 1 }}>
+                                    <div style={{ fontSize: 11, color: "color-mix(in srgb, var(--color-text) 55%, transparent)", marginBottom: 6 }}>{ef.label}</div>
+                                    <div style={{ fontSize: 13, fontVariantNumeric: "tabular-nums", display: "flex", alignItems: "center", gap: 5, minHeight: 20 }}>
+                                      {ef.invField.isEditing ? (
+                                        <input className="input" style={{ padding: "2px 6px", minHeight: "auto", fontSize: 13, width: 100, background: "var(--color-bg)" }} value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") commitEditField(); if (e.key === "Escape") cancelEditField(); }} onBlur={commitEditField} autoFocus />
+                                      ) : (
+                                        <span style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, ...styleObj(ef.invField.underline) }} onClick={ef.invField.onStart} onMouseEnter={ef.invField.onHoverIn} onMouseLeave={ef.invField.onHoverOut}>
+                                          <span>{ef.invField.value}</span>
+                                          {ef.invField.isEdited && (
+                                            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--color-accent-700)", flex: "none" }}></span>
+                                          )}
+                                          {ef.invField.showPencil && (
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="color-mix(in srgb, var(--color-text) 45%, transparent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>
+                                          )}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </React.Fragment>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {!!openCell && (
+        <div className="dialog-backdrop" onClick={closeDropdown} style={{ zIndex: 50 }}>
+          <div className="dialog" onClick={e => e.stopPropagation()} style={{ maxHeight: "70vh" }}>
+            <div className="dialog-title">{dialogTitle}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6, flex: "none" }}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input className="input" style={{ border: "none", padding: 0, minHeight: "auto" }} placeholder="พิมพ์เพื่อค้นหา..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} autoFocus />
+            </div>
+            <div style={{ overflow: "auto", maxHeight: 320, display: "flex", flexDirection: "column", gap: 2 }}>
+              {dialogOptions.length === 0 && (
+                <div style={{ padding: "14px 8px", fontSize: 13, color: "color-mix(in srgb, var(--color-text) 55%, transparent)" }}>ไม่พบรายการที่ตรงกัน</div>
+              )}
+              {dialogOptions.map(opt => (
+                <div key={opt.key} className="dialog-option" style={{ padding: 10, fontSize: 14, borderRadius: "var(--radius-sm)", cursor: "pointer" }} onClick={opt.onSelect}>
+                  <div>{opt.label}</div>
+                  <div style={{ fontSize: 11, color: "color-mix(in srgb, var(--color-text) 55%, transparent)" }}>{opt.sub}</div>
+                </div>
+              ))}
+            </div>
+            <div className="dialog-actions">
+              <button className="btn btn-secondary" onClick={closeDropdown}>ปิด</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showExportConfirm && (
+        <div className="dialog-backdrop" onClick={() => setShowExportConfirm(false)} style={{ zIndex: 60 }}>
+          <div className="dialog" onClick={e => e.stopPropagation()}>
+            <div className="dialog-title">ยืนยันเสร็จสิ้นและส่งออกข้อมูล</div>
+            <p style={{ fontSize: 14, margin: 0 }}>ยืนยันเสร็จสิ้นและส่งออกข้อมูล {stats.total} รายการเป็นไฟล์ Excel?</p>
+            {unconfirmedReview > 0 && (
+              <p style={{ fontSize: 13, margin: 0, color: "oklch(42% 0.14 25)", background: "oklch(94% 0.045 25)", padding: "8px 10px", borderRadius: "var(--radius-md)" }}>
+                ยังมี {unconfirmedReview} แถวที่ยังไม่ได้ตรวจ ต้องการส่งออกต่อหรือไม่?
+              </p>
+            )}
+            {window.showSaveFilePicker ? (
+              <p style={{ fontSize: 12, margin: 0, color: "color-mix(in srgb, var(--color-text) 55%, transparent)" }}>
+                {fileHandleRef.current
+                  ? <React.Fragment>จะอัปเดตไฟล์เดิมที่เลือกไว้ ({" "}
+                      <span style={{ cursor: "pointer", textDecoration: "underline", color: "var(--color-accent)" }} onClick={() => { fileHandleRef.current = null; }}>เปลี่ยนไฟล์ปลายทาง</span>
+                      {" "})</React.Fragment>
+                  : "ครั้งแรกจะให้เลือกตำแหน่งไฟล์ปลายทาง — ครั้งต่อไปจะอัปเดตไฟล์เดิมนั้นให้อัตโนมัติ"}
+              </p>
+            ) : (
+              <p style={{ fontSize: 12, margin: 0, color: "color-mix(in srgb, var(--color-text) 55%, transparent)" }}>เบราว์เซอร์นี้จะดาวน์โหลดเป็นไฟล์ใหม่ทุกครั้ง (อัปเดตไฟล์เดิมอัตโนมัติได้เฉพาะ Chrome/Edge)</p>
+            )}
+            <div className="dialog-actions">
+              <button className="btn btn-secondary" onClick={() => setShowExportConfirm(false)}>ยกเลิก</button>
+              <button className="btn btn-primary" onClick={confirmExport}>ยืนยันและส่งออก</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showToast && (
+        <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: "oklch(25% 0.02 100)", color: "white", padding: "12px 20px", borderRadius: "var(--radius-md)", fontSize: 13, boxShadow: "var(--shadow-lg)", zIndex: 80, display: "flex", alignItems: "center", gap: 8 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="oklch(70% 0.15 150)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 17.01"></polyline></svg>
+          {toastMessage}
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
