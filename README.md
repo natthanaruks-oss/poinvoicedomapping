@@ -1,68 +1,52 @@
-# PO–Invoice–DO Mapping — OCR Item Recheck
+# PO–Invoice–DO Mapping
 
-Static, browser-only web application for rechecking OCR item content and the matched item name before exporting a validated Excel file.
-
-## Data-handling design
-
-The deployed web application contains **no supplier data, item master, invoice data, OCR result, or sample transaction data**.
-
-When a user imports an Excel file:
-
-- the file is read inside the user's browser;
-- the content is held in temporary JavaScript memory only;
-- no file content is uploaded to Cloudflare or another server;
-- no API, database, cookie, `localStorage`, `sessionStorage`, or IndexedDB is used;
-- refreshing or closing the page removes the imported content;
-- exporting creates a new Excel file on the user's own device.
-
-Cloudflare Pages only serves the static application files.
-
-## Minimum input columns
-
-The application requires these columns, or a supported equivalent header:
-
-- `Item Description (OCR)`
-- `Matched Item Name`
-
-Recommended columns:
-
-- `Invoice No`
-- `Supplier Name (OCR)`
-- `Supplier Item Code (OCR)`
-- `Match Type`
-- `Confidence (%)`
-- `Character Error Rate`
-- `document_id`
-
-Unknown columns are preserved and returned in the exported workbook.
-
-## Export columns added
-
-- `Review Status`
-- `Review Note`
-- `Reviewed At`
-- `Changed Fields`
+Static web application for validating and mapping item descriptions across Purchase Orders, Invoices, and Delivery Orders.
 
 ## Application structure
 
-- `index.html` — browser-only application logic; no business data is embedded
-- `styles.css` — application styling using system fonts only
-- `vendor/` — local React, ReactDOM, and SheetJS libraries
-- `_headers` — Cloudflare security headers, including `connect-src 'none'`
+- `index.html` — application logic, with a built-in fallback supplier/item mapping master
+- `styles.css` — application styling
+- `vendor/` — local React, ReactDOM, Babel, and SheetJS libraries
+- `supplier_item_master.xlsx` — the live Supplier Master data file. The app fetches this file by
+  this exact name on every page load and uses it instead of the built-in fallback when present.
+  **Replace this file whenever IT/procurement updates the real Supplier Master spreadsheet** — no
+  code change or redeploy of `index.html` needed, just overwrite this file with the new one
+  (columns: `Supplier Name`, `Supplier Item Code`, `Supplier Item Name`, `Supplier Item UOM` — the
+  last one is optional and may be entirely absent from the file for now). Only takes effect when
+  served over http(s) (see below) — a plain `file://` open falls back to the built-in copy in
+  `index.html` instead.
 
-No server, database, package installation, environment variable, or build process is required.
+No server, database, package installation, or build process is required.
 
 ## Run locally
+
+Opening `index.html` directly may work, but a local HTTP server is recommended.
 
 ```bash
 python -m http.server 8000
 ```
 
-Open `http://localhost:8000`.
+Then open `http://localhost:8000`.
 
-## Cloudflare Pages settings
+## Deploy with Cloudflare Pages (Git integration)
 
-- Framework preset: `None`
-- Build command: leave blank
-- Build output directory: `/`
-- Root directory: leave blank
+1. Push this folder to a GitHub repository.
+2. In Cloudflare Dashboard, select **Workers & Pages** → **Create** → **Pages** → **Connect to Git**.
+3. Select the GitHub repository.
+4. Use these build settings:
+   - Framework preset: `None`
+   - Build command: leave blank
+   - Build output directory: `/`
+5. Deploy.
+
+## Deploy with Cloudflare Direct Upload
+
+Upload the contents of this repository or upload the prepared ZIP through Cloudflare Pages Direct Upload.
+
+## Data and security notice
+
+The supplier/item mapping master lives in `supplier_item_master.xlsx` (fetched live on each page load) with a built-in fallback copy embedded in `index.html` for when that file isn't reachable. Anyone who can access the deployed site can download `supplier_item_master.xlsx` directly or inspect the embedded fallback data in the browser source.
+
+For internal use, protect the Cloudflare Pages site with Cloudflare Access and restrict access to approved users or company email domains.
+
+Do not commit source Excel workbooks, internal notes, `.claude` configuration, credentials, or confidential business files. The included `.gitignore` blocks common source-data formats by default.

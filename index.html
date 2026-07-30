@@ -1,19 +1,2634 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="robots" content="noindex, nofollow, noarchive" />
-  <title>PO–Invoice–DO Mapping | OCR Item Recheck</title>
-  <link rel="stylesheet" href="styles.css" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Invoice data Validation — PO–Invoice–DO Mapping</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  body{margin:0}
+  ::-webkit-scrollbar{height:10px;width:10px}
+  ::-webkit-scrollbar-thumb{background:var(--color-divider);border-radius:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+  @keyframes imv-pulse{0%,100%{opacity:0.5}50%{opacity:0.9}}
+  .imv-skel{background:color-mix(in srgb, var(--color-text) 10%, var(--color-bg));border-radius:var(--radius-sm);animation:imv-pulse 1.4s ease-in-out infinite}
+</style>
+<script src="vendor/react.production.min.js"></script>
+<script src="vendor/react-dom.production.min.js"></script>
+<script src="vendor/babel.min.js"></script>
+<script src="vendor/xlsx.full.min.js"></script>
 </head>
 <body>
-  <div id="root"></div>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
 
-  <script src="vendor/react.production.min.js"></script>
-  <script src="vendor/react-dom.production.min.js"></script>
-  <script src="vendor/xlsx.full.min.js"></script>
+// Built-in snapshot of "Supplier item master update 1.xlsx" — used only until a live copy loads
+// (via SUPPLIER_MASTER_FILENAME fetch or manual import, see App()). This snapshot goes stale as
+// IT adds/changes items; don't treat it as the source of truth once the app is actually running.
+const FALLBACK_SUPPLIER_MASTER = {
+  "บริษัท เจดับบลิวที โฮลดิ้ง จำกัด": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "ปูนผงเอสซีจี ปอร์ตแลนด์ประเภท 3",
+      "supplierUom": "ตัน",
+    }
+  ],
+  "บริษัท เกียรติทยากร เมททัล จำกัด": [
+    {
+      "supplierItemCode": "25-s28-32050CD9",
+      "supplierItemName": "เพลาดำ 32mm.x50cm.",
+      "supplierUom": "ส",
+    },
+    {
+      "supplierItemCode": "01-TAT-160764050",
+      "supplierItemName": "DB SD40 16mm.x0.76m.",
+      "supplierUom": "ส",
+    },
+    {
+      "supplierItemCode": "81-040-12001",
+      "supplierItemName": "DB SD40 12mm.x2.00m",
+      "supplierUom": "ส",
+    },
+    {
+      "supplierItemCode": "00-TAT-061024000",
+      "supplierItemName": "RB SR24 06mm.10m.",
+      "supplierUom": "ส",
+    },
+    {
+      "supplierItemCode": "00-TY-091024000",
+      "supplierItemName": "RB SR24 09mm.x10m.",
+      "supplierUom": "ส",
+    },
+    {
+      "supplierItemCode": "01-TAT-201040050",
+      "supplierItemName": "DB SD40 20mm.x10m.",
+      "supplierUom": "ส",
+    },
+    {
+      "supplierItemCode": "01-TAT-121040050",
+      "supplierItemName": "DB SD40 12mm.x10m.",
+      "supplierUom": "ส",
+    },
+    {
+      "supplierItemCode": "01-TAT-201040050",
+      "supplierItemName": "DB SD40 20mm.x10m.",
+      "supplierUom": "ส",
+    },
+    {
+      "supplierItemCode": "01-TY-161040090",
+      "supplierItemName": "DB SD40 16mm.x10m.",
+      "supplierUom": "ส",
+    },
+    {
+      "supplierItemCode": "01-TY-251040090",
+      "supplierItemName": "DB SD40 25mm.x10m.",
+      "supplierUom": "ส",
+    },
+    {
+      "supplierItemCode": "01-TAT-251040090",
+      "supplierItemName": "DB SD40 25mm.x10m.",
+      "supplierUom": "ส",
+    },
+    {
+      "supplierItemCode": "2S-S28-32050CD9",
+      "supplierItemName": "เพลาดำ 32mm.x50cm.",
+      "supplierUom": "ส",
+    },
+    {
+      "supplierItemCode": "01-TAT-281250090",
+      "supplierItemName": "DB SD50 28mm.x12m.",
+      "supplierUom": "ส",
+    },
+    {
+      "supplierItemCode": "07-xxx-0230-0-1",
+      "supplierItemName": "ลวดผูกเหล็ก #18",
+      "supplierUom": "ขด",
+    }
+  ],
+  "บริษัท พี.โอเวอร์ซีส์ สตีล จำกัด (มหาชน)": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เหล็กเส้นข้ออ้อย SD40 25 มม. X 12 ม. ตรง",
+      "supplierUom": "",
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เหล็กเส้นข้ออ้อย SD40 28 มม. X 10 ม. ตรง",
+      "supplierUom": "",
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เหล็กเส้นข้ออ้อย SD40 28 มม. X 12 ม. ตรง",
+      "supplierUom": "",
+    }
+  ],
+  "บริษัท พรีคอน (ประเทศไทย) จำกัด": [
+    {
+      "supplierItemCode": "F05-0529",
+      "supplierItemName": "ท่อคอนกรีตขนาด 120 ซม.ยาว 100 ซม. (ท่อคอนกรีตอัดแรง คสล.มอก.ชั้น 3)",
+      "supplierUom": "ท่อน",
+    },
+    {
+      "supplierItemCode": "F06-1066",
+      "supplierItemName": "บ่อพักขนาด 1.20m.(1.20x1.80x2.05m.) หนา 0.15m. 2 ทางตรง มีฐาน 2RB9 @0.15, 0.20 (กรมทางหลวง TYPE C)",
+      "supplierUom": "บ่อ",
+    },
+    {
+      "supplierItemCode": "F05-0521",
+      "supplierItemName": "ท่อคอนกรีตขนาด 80 ซม. ยาว 100 ชม. (ท่อคอนกรีต อัดแรง คสล. มอก.ชั้น 3)",
+      "supplierUom": "ท่อน",
+    },
+    {
+      "supplierItemCode": "F06-2129",
+      "supplierItemName": "บ่อพักขนาด 0.80m.(1.30x1.30x1.60m.) หนา 0.15m. 2 ทางตรง มีฐาน 2RB9@0.15/ปอ@0.15 (กรม ทางหลวง TYPE D)",
+      "supplierUom": "บ่อ",
+    },
+    {
+      "supplierItemCode": "F05-0525",
+      "supplierItemName": "ท่อคอนกรีตขนาด 100 ซม. ยาว 100 ซม. (ท่อ คอนกรีตอัดแรง คสล. มอก.ชั้น 3)",
+      "supplierUom": "ท่อน",
+    }
+  ],
+  "บริษัท ทักษิณคอนกรีต จำกัด (มหาชน)": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เสาเข็ม 0.40x0.40x9.00 ม. (ส4DB25x6.00)",
+      "supplierUom": "",
+    }
+  ],
+  "บริษัท ที.เอ็ม.ตะแกรงเหล็ก จำกัด": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "B90 9.0x9.0mm. @ 150x150mm. 9.90x3.40m. ตะแกรงเหล็ก(กลม)",
+      "supplierUom": "",
+    }
+  ],
+  "บริษัท ทีพีไอ โพลีน จำกัด (มหาชน)": [
+    {
+      "supplierItemCode": "111",
+      "supplierItemName": "ปูนTPIแดงHydraulicCement (GU) ผง",
+      "supplierUom": "",
+    },
+    {
+      "supplierItemCode": "191299",
+      "supplierItemName": "ปูนแดง299HydraulicCement (GU) ผง",
+      "supplierUom": "",
+    },
+    {
+      "supplierItemCode": "1110P",
+      "supplierItemName": "ปูนปอร์ตแลนด์TPIพลัส(P)ผง",
+      "supplierUom": "",
+    }
+  ],
+  "บริษัท เหล็กทรัพย์ จำกัด": [
+    {
+      "supplierItemCode": "RBM1S240601000",
+      "supplierItemName": "เหล็กเส้นกลม 6มมx10มSR24 ตรง",
+      "supplierUom": "Piece",
+    },
+    {
+      "supplierItemCode": "RBM1S240901000",
+      "supplierItemName": "เหล็กเส้นกลม 9มมx10มSR24 ตรง",
+      "supplierUom": "Piece",
+    },
+    {
+      "supplierItemCode": "DBM1S401201000T",
+      "supplierItemName": "เหล็กข้ออ้อย 12มมx10มSD40 ตรง (T)",
+      "supplierUom": "Piece",
+    },
+    {
+      "supplierItemCode": "DBM1S401601000T",
+      "supplierItemName": "เหล็กข้ออ้อย 16มมx10มSD40 ตรง (T)",
+      "supplierUom": "Piece",
+    },
+    {
+      "supplierItemCode": "DBM1S402501200",
+      "supplierItemName": "เหล็กข้ออ้อย 25มมx12มSD40 ตรง",
+      "supplierUom": "Piece",
+    },
+    {
+      "supplierItemCode": "EEW80181",
+      "supplierItemName": "ลวดดำ #18",
+      "supplierUom": "ROL",
+    },
+    {
+      "supplierItemCode": "DBM1S401201000",
+      "supplierItemName": "เหล็กข้ออ้อย 12มมx10มSD40 ตรง",
+      "supplierUom": "PC",
+    },
+    {
+      "supplierItemCode": "DBM1S401201200",
+      "supplierItemName": "เหล็กข้ออ้อย 12มมx12มSD40 ตรง",
+      "supplierUom": "PC",
+    },
+    {
+      "supplierItemCode": "DBM1S401601000",
+      "supplierItemName": "เหล็กข้ออ้อย 16มมx10มSD40 ตรง",
+      "supplierUom": "PC",
+    },
+    {
+      "supplierItemCode": "DBM1S402001000",
+      "supplierItemName": "เหล็กข้ออ้อย 20มมx10มSD40 ตรง",
+      "supplierUom": "PC",
+    },
+    {
+      "supplierItemCode": "DBM1S402501000",
+      "supplierItemName": "เหล็กข้ออ้อย 25มมx10มSD40 ตรง",
+      "supplierUom": "PC",
+    }
+  ],
+  "บริษัท ไทยไวร์โพรดัคท์ จำกัด (มหาชน)": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "\"PC STRAND-7WIRE ORDINARY RELAX SIZE : 9.5 mm. GRADE : 1860 N/mm. TYPE : 7 WIRE ORDINARY LOW RELAX, S-LAY SPEC : มอก. 420-2540\"",
+      "supplierUom": "TON",
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "\"PC WIRE-SI SIZE : 7.00 mm GRADE : 1670 N/mm TYPE : 4 INDENTED LOW RELAX SPEC : มอก.95-2540\"",
+      "supplierUom": "TON",
+    }
+  ],
+  "บริษัท ไทยพรีเมี่ยมไพพ์ จำกัด": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "Sonic Logging Pipe 2\" (OD50.8) x 1.40 x 6000 mm",
+      "supplierUom": "เส้น",
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "ข้อต่อตรง (Coupler) สวม OD 50.8 x 1.40 x ยาว 150 mm",
+      "supplierUom": "เส้น",
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "ข้องอ 90 องศา สวม OD50.8 หนา 1.40 ยาว 150 mm.",
+      "supplierUom": "เส้น",
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "RUBBER SLEEVE",
+      "supplierUom": "ชิ้น",
+    }
+  ],
+  "บริษัท ไทยอุดมคอนกรีต (1993) จำกัด": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เสาเข็ม 0.40x0.40x4.00 ม.",
+      "supplierUom": "ต้น",
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เสาเข็ม 0.45x0.45x6.00 ม.",
+      "supplierUom": "ต้น",
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เสาเข็ม 0.45x0.45x5.00 ม.",
+      "supplierUom": "ต้น",
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เสาเข็ม 0.525x0.525x6.00 ม.",
+      "supplierUom": "ต้น",
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "Box Beam 0.70x0.99x19.95 ม. (outer)",
+      "supplierUom": "ตัว",
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "Box Beam 0.70x0.99x19.95 ม. (inner)",
+      "supplierUom": "ตัว",
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "Plank Girder 0.35x0.99x9.95 m. (ตัวริมไม่มีทางเท้า)",
+      "supplierUom": "ตัว",
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "Plank Girder 0.35x0.99x9.95 m. (ตัวใน)",
+      "supplierUom": "ตัว",
+    }
+  ],
+  "ห้างหุ้นส่วนจำกัด ฉัตรชัยตรังคอนกรีต": [
+    {
+      "supplierItemCode": "05-0003-000120",
+      "supplierItemName": "R.C.PipeCulverts Dial.20mmx1.00mm",
+      "supplierUom": "ท่อน,ตัน",
+    },
+    {
+      "supplierItemCode": "07-0120-100025",
+      "supplierItemName": "Manhole R.C.fcrPipe Dia 1.20m",
+      "supplierUom": "ท่อน",
+    },
+    {
+      "supplierItemCode": "06-0120-120100",
+      "supplierItemName": "R.C. Box Culverts 1.20x1.20x1.0m.",
+      "supplierUom": "ท่อน",
+    },
+    {
+      "supplierItemCode": "05-0002-000040",
+      "supplierItemName": "R.C.Pipe Culverts Dia0.40mx1.0m",
+      "supplierUom": "ท่อน",
+    },
+    {
+      "supplierItemCode": "07-0040-100039",
+      "supplierItemName": "Monhole R.C.forPipeDia0.40mTypeB",
+      "supplierUom": "ท่อน",
+    },
+    {
+      "supplierItemCode": "05-0002-000080",
+      "supplierItemName": "R.C.PipeCulverts Dia0.80mmx1.00mm",
+      "supplierUom": "ท่อน",
+    },
+    {
+      "supplierItemCode": "05-0002-000100",
+      "supplierItemName": "R.C.PipeCulverts Dial.00m mx1.00 mm",
+      "supplierUom": "ท่อน",
+    }
+  ],
+  "บริษัท ปัตตานีโลจิสติกส์(2009) จำกัด": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "ปูนซีเมนต์ อินทรีเพชร ไฮดรอลิก 1.5 ตัน",
+      "supplierUom": "",
+    }
+  ],
+  "บริษัท ปูนซีเมนต์เอเซีย จำกัด (มหาชน)": [
+    {
+      "supplierItemCode": "100238",
+      "supplierItemName": "ปูนซีเมนต์ปอร์ตแลนด์ประเภท 1 บัวแดง โปรเวิร์ค - ผง",
+      "supplierUom": "",
+    }
+  ],
+  "บริษัท ร่อนทองชัย โฮมมาร์ท จำกัด": [
+    {
+      "supplierItemCode": "20018504",
+      "supplierItemName": "ปูนผง ประเภท 1 SCG",
+      "supplierUom": "ตัน",
+    },
+    {
+      "supplierItemCode": "20020051",
+      "supplierItemName": "ปูนผงเอสซีจี สูตรไฮบริด",
+      "supplierUom": "ตัน",
+    },
+    {
+      "supplierItemCode": "DC-00734",
+      "supplierItemName": "\"คอนกรีตทั่วไป (งานราชการ) กำลังอัด 357 กก./ตร.ซม. 35NZB0ABBZ Concrete Standard : Strength 357 cube, Slump 7.5 +/- 2.5 cm.\"",
+      "supplierUom": "คิวบิค",
+    }
+  ],
+  "บริษัท ดูโฮม จำกัด (มหาชน)": [
+    {
+      "supplierItemCode": "10016171",
+      "supplierItemName": "ข้ออ้อยSD40 12*10มต.",
+      "supplierUom": "เส้น",
+    }
+  ],
+  "บริษัท กวีวรรณผลิตภัณฑ์คอนกรีต จำกัด": [
+    {
+      "supplierItemCode": "08-บรฆ 100",
+      "supplierItemName": "บ่อพักปากระฆังขนาด 100 ซม.",
+      "supplierUom": "บ่อ",
+    },
+    {
+      "supplierItemCode": "07-รฆ3-100",
+      "supplierItemName": "ท่อปากระฆัง 100x250 ซม.",
+      "supplierUom": "ท่อน",
+    },
+    {
+      "supplierItemCode": "07-รฆ3-40",
+      "supplierItemName": "ท่อปากระฆัง 40x250 ซม.",
+      "supplierUom": "ท่อน",
+    },
+    {
+      "supplierItemCode": "09-ทร-40X110",
+      "supplierItemName": "ท่อเรียบขนาด 40x110 ซม.",
+      "supplierUom": "ท่อน",
+    },
+    {
+      "supplierItemCode": "10-ยอร-100",
+      "supplierItemName": "ยางโอริงสวมท่อปากระฆัง ขนาด 100 ซม.",
+      "supplierUom": "เส้น",
+    },
+    {
+      "supplierItemCode": "10-ยอร-40",
+      "supplierItemName": "ยางโอริงสวมท่อปากระฆัง ขนาด 40 ซม.",
+      "supplierUom": "เส้น",
+    }
+  ],
+  "บริษัท ดี เมทัล จำกัด": [
+    {
+      "supplierItemCode": "01-00-000000101",
+      "supplierItemName": "เส้นกลม25มิล*10ม.SR24(ตรง)",
+      "supplierUom": "",
+    },
+    {
+      "supplierItemCode": "01-00-000000441.1",
+      "supplierItemName": "ข้ออ้อย12มิล*10ม.SD40(ตรง)NT",
+      "supplierUom": "",
+    },
+    {
+      "supplierItemCode": "01-00-000000461.1",
+      "supplierItemName": "ข้ออ้อย16มิล*10ม.SD40(ตรง)NT",
+      "supplierUom": "",
+    },
+    {
+      "supplierItemCode": "01-00-000000501.1",
+      "supplierItemName": "ข้ออ้อย25มิล*10ม.SD40(ตรง)NT",
+      "supplierUom": "",
+    },
+    {
+      "supplierItemCode": "01-00-000000021",
+      "supplierItemName": "เส้นกลม9มิล*10ม.SR24(ตรง)",
+      "supplierUom": "",
+    },
+    {
+      "supplierItemCode": "01-00-000000661",
+      "supplierItemName": "ข้ออ้อย28มิล*12ม.SD40(ตรง)T",
+      "supplierUom": "",
+    },
+    {
+      "supplierItemCode": "01-00-000000441",
+      "supplierItemName": "\" ข้ออ้อย12มิล*10ม. SD40(ตรง)T ยี่ห้อ TATA\"",
+      "supplierUom": "",
+    },
+    {
+      "supplierItemCode": "01-00-000000601",
+      "supplierItemName": "\"ข้ออ้อย16มิล*12ม. SD40(ตรง)T ยี่ห้อ TATA\"",
+      "supplierUom": "",
+    },
+    {
+      "supplierItemCode": "01-00-000000021",
+      "supplierItemName": "\" เส้นกลม9มิล*10ม. SR24(ตรง) ยี่ห้อ TATA\"",
+      "supplierUom": "",
+    }
+  ],
+  "บริษัท ช.รุ่งแสงไลท์ติ้ง จำกัด": [
+    {
+      "supplierItemCode": "SEAC-BKTE-2PC-0000-SET1",
+      "supplierItemName": "แผ่นใส้AL+เบรกWSB1-63 2PC106KAขาว+เทอร์ฯTC60A-4P (เดี่ยว)**",
+      "supplierUom": "",
+    },
+    {
+      "supplierItemCode": "SIFA-STKR-D3M-0015-0015",
+      "supplierItemName": "สติ๊กเกอร์สะท้อนแสงสีส้ม3M DIAMOND ขนาด15*15CM.",
+      "supplierUom": "",
+    },
+    {
+      "supplierItemCode": "41007",
+      "supplierItemName": "สายไฟ CV 3x10 sq.mm.",
+      "supplierUom": "",
+    }
+  ],
+  "บริษัท วริศพงศ์ กรุ๊ป จำกัด": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "การ์ดเรล WRP หนา 2.5 มม. มอก.248-2567",
+      "supplierUom": "ม.",
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เสาการ์ดเรล ทช. (16ซม.) หนา4มม. ยาว2ม.",
+      "supplierUom": "ต้น",
+    }
+  ],
+  "บริษัท เดอะ สตีล จำกัด (มหาชน)": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เหล็กเส้นข้ออ้อย 12.0 MM × 12 M SD40T",
+      "supplierUom": "เส้น",
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เหล็กเส้นข้ออ้อย 16.0 MM × 10 M SD40T",
+      "supplierUom": "เส้น",
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เหล็กเส้นข้ออ้อย 16.0 MM × 12 M SD40T",
+      "supplierUom": "เส้น",
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เหล็กเส้นข้ออ้อย 25.0 MM × 10 M SD40T",
+      "supplierUom": "เส้น",
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เหล็กเส้นข้ออ้อย 28.0MMX10M SD40T",
+      "supplierUom": "เส้น",
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "เหล็กเส้นข้ออ้อย 28.0MMX12M SD40T",
+      "supplierUom": "เส้น",
+    }
+  ],
+  "บริษัท ดับบลิวเอ็มไอ ไวร์เมช จำกัด": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "\"ตะแกรงเหล็กข้ออ้อย 9.00 mm@15 cm. ขนาด 3 × 9.9 m. \"",
+      "supplierUom": "ตรม.",
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "\"ตะแกรงเหล็กข้ออ้อย 9.00 mm@15 cm. ขนาด 3.4 × 9.9 m. \"",
+      "supplierUom": "ตรม.",
+    }
+  ],
+  "บริษัท เคดี เทค กรุ๊ป จำกัด": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "\"TC-90 เคมีบำบัดน้ำเสีย (จุลินทรีย์เติมบ่อบำบัด/307700001)\"",
+      "supplierUom": "กิโลกรัม",
+    }
+  ],
+  "บริษัท โตโยต้า ภูเก็ต มอเตอร์ส จำกัด": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "\"GUN120R-CTTLXT/A6 REVO Smart Cab Z Edition 2.4 Entry AT \"",
+      "supplierUom": "คัน",
+    }
+  ],
+  "บริษัท ก พัฒนาผลิตภัณฑ์คอนกรีต จำกัด": [
+    {
+      "supplierItemCode": "10-OG3050",
+      "supplierItemName": "O-Gutter 0.30x0.50x0.50x2.00 ม.",
+      "supplierUom": "ท่อน",
+    }
+  ],
+  "บริษัท ท๊อปแลนด์ คอนกรีต จำกัด": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "\"เสาเข็ม I กอร. ขนาด 0.40x0.40x6.00 เมตร (16-PC Strand 9.5 mm.) (4-DB25x6.00 m. หัวเข็ม +4-DB16x1.50 m. ปลายเข็ม)\"",
+      "supplierUom": "ต้น",
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "\"เสาเข็ม I กอร. ขนาด 0.40x0.40x8.00 เมตร (16-PC Strand 9.5 mm.) (4-DB25x6.00 m. หัวเข็ม +4-DB16x1.50 m. ปลายเข็ม)\"",
+      "supplierUom": "ต้น",
+    }
+  ],
+  "บริษัท ทุ่งคาคอนกรีต จำกัด": [
+    {
+      "supplierItemCode": "4450060",
+      "supplierItemName": "เข็ม S0.45x0.45x6.00ม. ปลายแหลม (RC)",
+      "supplierUom": "ต้น",
+    }
+  ],
+  "บริษัท ส.อรุณ คอนกรีต จำกัด": [
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "ท่อระบายน้ำ ขนาด 1.00 เมตร (คสล.2)",
+      "supplierUom": "ท่อน",
+    },
+    {
+      "supplierItemCode": "",
+      "supplierItemName": "ท่อระบายน้ำ ขนาด 1.00 เมตร (คสล.3)",
+      "supplierUom": "ท่อน",
+    }
+  ]
+};
 
-  <script src="app.js"></script>
+// Live Supplier Master file: fetched from this filename, in the same folder as index.html, on
+// every app load (see App()'s useEffect below). Whenever IT/procurement updates the real
+// "Supplier item master" spreadsheet, save the new copy over this exact filename — no code
+// change needed, just reload the page. Only works when served over http(s) (Codespace, GitHub
+// Pages, Cloudflare Pages, etc.) — browsers block fetch() of local files on a plain file://
+// open; in that case the app silently falls back to FALLBACK_SUPPLIER_MASTER below (a manual
+// "Import Supplier Master" button was considered as a file:// fallback but explicitly rejected —
+// don't re-add it).
+const SUPPLIER_MASTER_FILENAME = "supplier_item_master.xlsx";
+
+// Parses a raw Supplier Master worksheet (SheetJS sheet_to_json rows) into the same
+// { [supplierName]: [{supplierItemCode, supplierItemName, supplierUom}, ...] } shape as
+// FALLBACK_SUPPLIER_MASTER. Preferred headers ("Supplier Name" / "Supplier Item Code" /
+// "Supplier Item Name" / "Supplier Item UOM") are the clean 4-column spec agreed with the user
+// to hand to IT — flat columns, header row 1, no Oracle DFF pipe-delimited fields, no RVN/FG
+// Item codes (deliberately excluded, §3). Each field also falls back to the OLD source file's
+// header text ("Oracle Supplier Name" / "supplier item code" / "supplier item name" / "supplier
+// item UOM (INV)") so an old-format file (originally copied from "Supplier item master update
+// 1.xlsx") would keep working — moot now that the real IT file is deployed (§4), but harmless to
+// keep as a safety net. Filename is `SUPPLIER_MASTER_FILENAME` above — currently
+// `"supplier_item_master.xlsx"`, matching what IT actually calls their export; once that
+// happens the old fallback names can be deleted, but don't remove them pre-emptively. Note: the
+// supplier's full Thai company name must match the Invoice file's own "Supplier Name" column
+// exactly — a past bug used the OLD file's plain "supplier name" column, which is actually just
+// a short internal mnemonic code ("JWT"/"KTMT"), not the real name; don't reintroduce that key.
+// Header lookups are whitespace-tolerant: IT's real first delivery of this file has a literal
+// trailing space in its "Supplier Item Code " header (confirmed by inspecting the actual file —
+// it's generated from an Oracle SQL query with `... as "Supplier Item Code "`, space included in
+// the query itself). An exact-string lookup would silently return "" for every row's item code
+// forever. `trimmedKeys()` normalizes every column name on a row before any field lookup runs,
+// so this — and any similar accidental whitespace in a future delivery — doesn't silently break.
+function trimmedKeys(raw) {
+  const out = {};
+  Object.keys(raw).forEach(k => { out[k.trim()] = raw[k]; });
+  return out;
+}
+
+function parseSupplierMasterRows(sheetRows) {
+  const master = {};
+  sheetRows.forEach(rawUntrimmed => {
+    const raw = trimmedKeys(rawUntrimmed);
+    const supplierName = String(raw["Supplier Name"] ?? raw["Oracle Supplier Name"] ?? "").trim();
+    if (!supplierName) return;
+    const item = {
+      supplierItemCode: String(raw["Supplier Item Code"] ?? raw["supplier item code"] ?? "").trim(),
+      supplierItemName: String(raw["Supplier Item Name"] ?? raw["supplier item name"] ?? "").trim(),
+      supplierUom: String(raw["Supplier Item UOM"] ?? raw["supplier item UOM (INV)"] ?? "").trim(),
+    };
+    if (!item.supplierItemName) return;
+    if (!master[supplierName]) master[supplierName] = [];
+    master[supplierName].push(item);
+  });
+  return master;
+}
+
+const BASE_ROWS = [
+  {
+    "id": 1,
+    "invoiceNo": "INV-2026-0101",
+    "poNo": "PO-0201",
+    "supplierNameOcr": "บริษัท เกียรติทยากร เมททัล จำกัด",
+    "ocrItemCode": "25-s28-32050CD9",
+    "ocrDesc": "เพลาดำ 32mm.x50cm",
+    "matchType": "Exact",
+    "matchResult": "เพลาดำ 32mm.x50cm.",
+    "confidence": 100,
+    "poQty": "500",
+    "poUnitPrice": "12.50",
+    "poExVat": "6,250.00",
+    "poUOM": "ส",
+    "invQty": "500",
+    "invUnitPrice": "12.50",
+    "invExVat": "6,250.00",
+    "invUOM": "ส"
+  },
+  {
+    "id": 2,
+    "invoiceNo": "INV-2026-0102",
+    "poNo": "PO-0202",
+    "supplierNameOcr": "บริษัท เกียรติทยากร เมททัล จำกัด",
+    "ocrItemCode": "01-TAT-160764050",
+    "ocrDesc": "DBSD4016mm.x0.76m.",
+    "matchType": "Exact",
+    "matchResult": "DB SD40 16mm.x0.76m.",
+    "confidence": 100,
+    "poQty": "30",
+    "poUnitPrice": "42.00",
+    "poExVat": "1,260.00",
+    "poUOM": "ส",
+    "invQty": "30",
+    "invUnitPrice": "42.00",
+    "invExVat": "1,260.00",
+    "invUOM": "ส"
+  },
+  {
+    "id": 3,
+    "invoiceNo": "INV-2026-0103",
+    "poNo": "PO-0203",
+    "supplierNameOcr": "บริษัท พี.โอเวอร์ซีส์ สตีล จำกัด (มหาชน)",
+    "ocrItemCode": "",
+    "ocrDesc": "เหล็กเสนขอออย SD40 25 มม. X 12 ม. ตรง",
+    "matchType": "Fuzzy",
+    "matchResult": "เหล็กเส้นข้ออ้อย SD40 25 มม. X 12 ม. ตรง",
+    "confidence": 94,
+    "characterErrorRate": 8.2,
+    "poQty": "1,200",
+    "poUnitPrice": "28.50",
+    "poExVat": "34,200.00",
+    "poUOM": "หน่วย",
+    "invQty": "1,200",
+    "invUnitPrice": "28.50",
+    "invExVat": "34,200.00",
+    "invUOM": "หน่วย"
+  },
+  {
+    "id": 4,
+    "invoiceNo": "INV-2026-0104",
+    "poNo": "PO-0204",
+    "supplierNameOcr": "บริษัท พรีคอน (ประเทศไทย) จำกัด",
+    "ocrItemCode": "F05-0521",
+    "ocrDesc": "ทอคอนกรีตขนาด80ซม.ยาว100ชม.(ทอคอนกรีตอัดแรงคสล.มอก.ชัน3)",
+    "matchType": "Fuzzy",
+    "matchResult": "ท่อคอนกรีตขนาด 80 ซม. ยาว 100 ชม. (ท่อคอนกรีต อัดแรง คสล. มอก.ชั้น 3)",
+    "confidence": 87,
+    "poQty": "40",
+    "poUnitPrice": "950.00",
+    "poExVat": "38,000.00",
+    "poUOM": "ท่อน",
+    "invQty": "40",
+    "invUnitPrice": "950.00",
+    "invExVat": "38,000.00",
+    "invUOM": "ท่อน"
+  },
+  {
+    "id": 5,
+    "invoiceNo": "INV-2026-0105",
+    "poNo": "PO-0205",
+    "supplierNameOcr": "บริษัท ทีพีไอ โพลีน จำกัด (มหาชน)",
+    "ocrItemCode": "191299",
+    "ocrDesc": "ปูนแดง299HydraulicCement(GU)ผง",
+    "matchType": "Fuzzy",
+    "matchResult": "ปูนแดง299HydraulicCement (GU) ผง",
+    "confidence": 68,
+    "poQty": "500",
+    "poUnitPrice": "185.00",
+    "poExVat": "92,500.00",
+    "poUOM": "หน่วย",
+    "invQty": "480",
+    "invUnitPrice": "185.00",
+    "invExVat": "88,800.00",
+    "invUOM": "หน่วย"
+  },
+  {
+    "id": 6,
+    "invoiceNo": "INV-2026-0106",
+    "poNo": "PO-0206",
+    "supplierNameOcr": "บริษัท เจดับบลิวที โฮลดิ้ง จำกัด",
+    "ocrItemCode": "",
+    "ocrDesc": "ปูนผงเอสซีจี ปอร์ตแลนด์ประเภท 3",
+    "matchType": "Fuzzy",
+    "matchResult": "ปูนผงเอสซีจี ปอร์ตแลนด์ประเภท 3",
+    "confidence": 82,
+    "poQty": "10",
+    "poUnitPrice": "45,000.00",
+    "poExVat": "450,000.00",
+    "poUOM": "ตัน",
+    "invQty": "10",
+    "invUnitPrice": "45,000.00",
+    "invExVat": "450,000.00",
+    "invUOM": "ตัน"
+  },
+  {
+    "id": 7,
+    "invoiceNo": "INV-2026-0107",
+    "poNo": "PO-0207",
+    "supplierNameOcr": "บริษัท ไทยไวร์โพรดัคท์ จำกัด (มหาชน)",
+    "ocrItemCode": "",
+    "ocrDesc": "PC STRAND-7WIRE ORDINARY RELAX SIZE : 9.5 mm. GRADE : 1860 N/mm. TYPE : 7 WIRE ORDINARY LOW RELAX, S-LAY SPEC : มอก. 420-2540",
+    "matchType": "Fuzzy",
+    "matchResult": "\"PC STRAND-7WIRE ORDINARY RELAX SIZE : 9.5 mm. GRADE : 1860 N/mm. TYPE : 7 WIRE ORDINARY LOW RELAX, S-LAY SPEC : มอก. 420-2540\"",
+    "confidence": 90,
+    "poQty": "200",
+    "poUnitPrice": "32.00",
+    "poExVat": "6,400.00",
+    "poUOM": "TON",
+    "invQty": "200",
+    "invUnitPrice": "32.00",
+    "invExVat": "6,400.00",
+    "invUOM": "TON"
+  },
+  {
+    "id": 8,
+    "invoiceNo": "INV-2026-0108",
+    "poNo": "PO-0208",
+    "supplierNameOcr": "บริษัท เหล็กทรัพย์ จำกัด",
+    "ocrItemCode": "RBM1S240601000",
+    "ocrDesc": "เหล็กเสนกลม6มมx10มSR24ตรง",
+    "matchType": "Fuzzy",
+    "matchResult": "เหล็กข้ออ้อย 16มมx10มSD40 ตรง (T)",
+    "confidence": 15,
+    "poQty": "50",
+    "poUnitPrice": "210.00",
+    "poExVat": "10,500.00",
+    "poUOM": "Piece",
+    "invQty": "50",
+    "invUnitPrice": "210.00",
+    "invExVat": "10,500.00",
+    "invUOM": "Piece"
+  },
+  {
+    "id": 9,
+    "invoiceNo": "INV-2026-0109",
+    "poNo": "PO-0209",
+    "supplierNameOcr": "บริษัท ดี เมทัล จำกัด",
+    "ocrItemCode": "01-00-000000101",
+    "ocrDesc": "เส้นกลม25มิล*10ม.SR24(ตรง)",
+    "matchType": "Exact",
+    "matchResult": "เส้นกลม25มิล*10ม.SR24(ตรง)",
+    "confidence": 100,
+    "poQty": "300",
+    "poUnitPrice": "45.00",
+    "poExVat": "13,500.00",
+    "poUOM": "หน่วย",
+    "invQty": "300",
+    "invUnitPrice": "47.50",
+    "invExVat": "14,250.00",
+    "invUOM": "หน่วย"
+  },
+  {
+    "id": 10,
+    "invoiceNo": "INV-2026-0110",
+    "poNo": "PO-0210",
+    "supplierNameOcr": "บริษัท เดอะ สตีล จำกัด (มหาชน)",
+    "ocrItemCode": "",
+    "ocrDesc": "เหล็กเสนขอออย 12.0 MM × 12 M SD40T",
+    "matchType": "Fuzzy",
+    "matchResult": "เหล็กเส้นข้ออ้อย 12.0 MM × 12 M SD40T",
+    "confidence": 96,
+    "poQty": "80",
+    "poUnitPrice": "620.00",
+    "poExVat": "49,600.00",
+    "poUOM": "เส้น",
+    "invQty": "80",
+    "invUnitPrice": "620.00",
+    "invExVat": "49,600.00",
+    "invUOM": "ท่อน"
+  },
+  {
+    "id": 11,
+    "invoiceNo": "INV-2026-0111",
+    "poNo": "PO-0211",
+    "supplierNameOcr": "บริษัท ไทยพรีเมี่ยมไพพ์ จำกัด",
+    "ocrItemCode": "",
+    "ocrDesc": "ข้อต่อตรง (C0upler) สวม 0D 50.8 x 1.40 x ยาว 150 mm",
+    "matchType": "Fuzzy",
+    "matchResult": "ข้อต่อตรง (Coupler) สวม OD 50.8 x 1.40 x ยาว 150 mm",
+    "confidence": 73,
+    "poQty": "150",
+    "poUnitPrice": "88.00",
+    "poExVat": "13,200.00",
+    "poUOM": "เส้น",
+    "invQty": "150",
+    "invUnitPrice": "88.00",
+    "invExVat": "13,200.00",
+    "invUOM": "เส้น"
+  },
+  {
+    "id": 12,
+    "invoiceNo": "INV-2026-0112",
+    "poNo": "PO-0212",
+    "supplierNameOcr": "บริษัท ที.เอ็ม.ตะแกรงเหล็ก จำกัด",
+    "ocrItemCode": "",
+    "ocrDesc": "B909.0x9.0mm.@150x150mm.9.90x3.40m.ตะแกรงเหล็ก(กลม)",
+    "matchType": "Fuzzy",
+    "matchResult": "B90 9.0x9.0mm. @ 150x150mm. 9.90x3.40m. ตะแกรงเหล็ก(กลม)",
+    "confidence": 97,
+    "poQty": "60",
+    "poUnitPrice": "320.00",
+    "poExVat": "19,200.00",
+    "poUOM": "หน่วย",
+    "invQty": "60",
+    "invUnitPrice": "320.00",
+    "invExVat": "19,200.00",
+    "invUOM": "หน่วย"
+  },
+  {
+    "id": 13,
+    "invoiceNo": "INV-2026-0113",
+    "poNo": "PO-0213",
+    "supplierNameOcr": "บริษัท ร่อนทองชัย โฮมมาร์ท จำกัด",
+    "ocrItemCode": "",
+    "ocrDesc": "ปูนผงประเภท1SCG",
+    "matchType": "Fuzzy",
+    "matchResult": "ปูนผง ประเภท 1 SCG",
+    "confidence": 61,
+    "poQty": "25",
+    "poUnitPrice": "1,250.00",
+    "poExVat": "31,250.00",
+    "poUOM": "ตัน",
+    "invQty": "25",
+    "invUnitPrice": "1,250.00",
+    "invExVat": "31,250.00",
+    "invUOM": "ตัน"
+  },
+  {
+    "id": 14,
+    "invoiceNo": "INV-2026-0114",
+    "poNo": "PO-0214",
+    "supplierNameOcr": "บริษัท ไทยอุดมคอนกรีต (1993) จำกัด",
+    "ocrItemCode": "",
+    "ocrDesc": "เสาเข็ม 0.40x0.40x4.00 ม",
+    "matchType": "Fuzzy",
+    "matchResult": "เสาเข็ม 0.40x0.40x4.00 ม.",
+    "confidence": 97,
+    "poQty": "15",
+    "poUnitPrice": "3,800.00",
+    "poExVat": "57,000.00",
+    "poUOM": "ต้น",
+    "invQty": "15",
+    "invUnitPrice": "3,800.00",
+    "invExVat": "57,000.00",
+    "invUOM": "ต้น"
+  },
+  {
+    "id": 15,
+    "invoiceNo": "INV-2026-0114",
+    "poNo": "PO-0214",
+    "supplierNameOcr": "บริษัท ไทยอุดมคอนกรีต (1993) จำกัด",
+    "ocrItemCode": "",
+    "ocrDesc": "เสาเข็ม 0.45x0.45x6.00 ม",
+    "matchType": "Fuzzy",
+    "matchResult": "เสาเข็ม 0.45x0.45x6.00 ม.",
+    "confidence": 97,
+    "poQty": "15",
+    "poUnitPrice": "3,900.00",
+    "poExVat": "58,500.00",
+    "poUOM": "ต้น",
+    "invQty": "15",
+    "invUnitPrice": "3,900.00",
+    "invExVat": "58,500.00",
+    "invUOM": "ต้น"
+  },
+  {
+    "id": 16,
+    "invoiceNo": "INV-2026-0116",
+    "poNo": "PO-0216",
+    "supplierNameOcr": "ห้างหุ้นส่วนจำกัด ฉัตรชัยตรังคอนกรีต",
+    "ocrItemCode": "05-0003-000120",
+    "ocrDesc": "R.C.PipeCulverts Dial.20mmx1.00mm",
+    "matchType": "Fuzzy",
+    "matchResult": "R.C.PipeCulverts Dial.20mmx1.00mm",
+    "confidence": 91,
+    "poQty": "40",
+    "poUnitPrice": "2,650.00",
+    "poExVat": "106,000.00",
+    "poUOM": "ท่อน,ตัน",
+    "invQty": "40",
+    "invUnitPrice": "2,650.00",
+    "invExVat": "106,000.00",
+    "invUOM": "ท่อน,ตัน"
+  },
+  {
+    "id": 17,
+    "invoiceNo": "INV-2026-0117",
+    "poNo": "PO-0217",
+    "supplierNameOcr": "บริษัท กวีวรรณผลิตภัณฑ์คอนกรีต จำกัด",
+    "ocrItemCode": "07-รฆ3-40",
+    "ocrDesc": "ทอปากระฆัง40x250ซม.",
+    "matchType": "Fuzzy",
+    "matchResult": "ท่อปากระฆัง 40x250 ซม.",
+    "confidence": 55,
+    "poQty": "100",
+    "poUnitPrice": "145.00",
+    "poExVat": "14,500.00",
+    "poUOM": "ท่อน",
+    "invQty": "100",
+    "invUnitPrice": "150.00",
+    "invExVat": "15,000.00",
+    "invUOM": "ท่อน"
+  },
+  {
+    "id": 18,
+    "invoiceNo": "INV-2026-0118",
+    "poNo": "PO-0218",
+    "supplierNameOcr": "บริษัท ดับบลิวเอ็มไอ ไวร์เมช จำกัด",
+    "ocrItemCode": "",
+    "ocrDesc": "\"ตะแกรงเหล็กข้ออ้อย9.00mm@15cm.ขนาด3×9.9m.\"",
+    "matchType": "Fuzzy",
+    "matchResult": "\"ตะแกรงเหล็กข้ออ้อย 9.00 mm@15 cm. ขนาด 3 × 9.9 m. \"",
+    "confidence": 97,
+    "poQty": "20",
+    "poUnitPrice": "5,200.00",
+    "poExVat": "104,000.00",
+    "poUOM": "ตรม.",
+    "invQty": "20",
+    "invUnitPrice": "5,200.00",
+    "invExVat": "104,000.00",
+    "invUOM": "ตรม."
+  },
+  {
+    "id": 19,
+    "invoiceNo": "INV-2026-0119",
+    "poNo": "PO-0219",
+    "supplierNameOcr": "บริษัท ท๊อปแลนด์ คอนกรีต จำกัด",
+    "ocrItemCode": "",
+    "ocrDesc": "เสาเข็ม I กอร. ขนาด 0.40x0.40x6.00 เมตร (16-PC Strand 9.5 mm.) (4-DB25x6.00 m. หัวเข็ม +4-DB16x1.50 m. ปลายเข็ม)",
+    "matchType": "Fuzzy",
+    "matchResult": "\"เสาเข็ม I กอร. ขนาด 0.40x0.40x6.00 เมตร (16-PC Strand 9.5 mm.) (4-DB25x6.00 m. หัวเข็ม +4-DB16x1.50 m. ปลายเข็ม)\"",
+    "confidence": 93,
+    "poQty": "8",
+    "poUnitPrice": "12,500.00",
+    "poExVat": "100,000.00",
+    "poUOM": "ต้น",
+    "invQty": "8",
+    "invUnitPrice": "12,500.00",
+    "invExVat": "100,000.00",
+    "invUOM": "ต้น"
+  },
+  {
+    "id": 20,
+    "invoiceNo": "INV-2026-0120",
+    "poNo": "PO-0220",
+    "supplierNameOcr": "บริษัท ทุ่งคาคอนกรีต จำกัด",
+    "ocrItemCode": "4450060",
+    "ocrDesc": "เข็ม S0.45x0.45x6.00ม. ปลายแหลม (RC)",
+    "matchType": "Fuzzy",
+    "matchResult": "เข็ม S0.45x0.45x6.00ม. ปลายแหลม (RC)",
+    "confidence": 79,
+    "poQty": "60",
+    "poUnitPrice": "890.00",
+    "poExVat": "53,400.00",
+    "poUOM": "ต้น",
+    "invQty": "58",
+    "invUnitPrice": "890.00",
+    "invExVat": "51,620.00",
+    "invUOM": "ต้น"
+  },
+  {
+    "id": 21,
+    "invoiceNo": "INV-2026-0121",
+    "poNo": "PO-0221",
+    "supplierNameOcr": "บริษัท ส.อรุณ คอนกรีต จำกัด",
+    "ocrItemCode": "",
+    "ocrDesc": "ท่อระบายน้ำ ขนาด 1.00 เมตร (คสล.2)",
+    "matchType": "Fuzzy",
+    "matchResult": "ท่อระบายน้ำ ขนาด 1.00 เมตร (คสล.2)",
+    "confidence": 97,
+    "poQty": "45",
+    "poUnitPrice": "1,150.00",
+    "poExVat": "51,750.00",
+    "poUOM": "ท่อน",
+    "invQty": "45",
+    "invUnitPrice": "1,150.00",
+    "invExVat": "51,750.00",
+    "invUOM": "ท่อน"
+  },
+  {
+    "id": 22,
+    "invoiceNo": "INV-2026-0122",
+    "poNo": "PO-0222",
+    "supplierNameOcr": "บริษัท ไทยไวร์โพรดัคท์ จำกัด (มหาชน)",
+    "ocrItemCode": "",
+    "ocrDesc": "\"PCWIRE-SISIZE:7.00mmGRADE:1670N/mmTYPE:4INDENTEDLOWRELAXSPEC:มอก.95-2540\"",
+    "matchType": "Fuzzy",
+    "matchResult": "\"PC WIRE-SI SIZE : 7.00 mm GRADE : 1670 N/mm TYPE : 4 INDENTED LOW RELAX SPEC : มอก.95-2540\"",
+    "confidence": 66,
+    "poQty": "100",
+    "poUnitPrice": "55.00",
+    "poExVat": "5,500.00",
+    "poUOM": "TON",
+    "invQty": "100",
+    "invUnitPrice": "55.00",
+    "invExVat": "5,500.00",
+    "invUOM": "TON"
+  },
+  {
+    "id": 23,
+    "invoiceNo": "INV-2026-0123",
+    "poNo": "PO-0223",
+    "supplierNameOcr": "บริษัท วริศพงศ์ กรุ๊ป จำกัด",
+    "ocrItemCode": "",
+    "ocrDesc": "การ์ดเรลWRPหนา2.5มม.มอก.248-2567",
+    "matchType": "Fuzzy",
+    "matchResult": "การ์ดเรล WRP หนา 2.5 มม. มอก.248-2567",
+    "confidence": 97,
+    "poQty": "12",
+    "poUnitPrice": "8,900.00",
+    "poExVat": "106,800.00",
+    "poUOM": "ม.",
+    "invQty": "12",
+    "invUnitPrice": "8,900.00",
+    "invExVat": "106,800.00",
+    "invUOM": "ม."
+  },
+  {
+    "id": 24,
+    "invoiceNo": "INV-2026-0124",
+    "poNo": "PO-0224",
+    "supplierNameOcr": "บริษัท เคดี เทค กรุ๊ป จำกัด",
+    "ocrItemCode": "",
+    "ocrDesc": "\"TC-90 เคมีบำบัดนำเสีย (จุลินทรีย์เติมบอบำบัด/307700001)\"",
+    "matchType": "Fuzzy",
+    "matchResult": "\"TC-90 เคมีบำบัดน้ำเสีย (จุลินทรีย์เติมบ่อบำบัด/307700001)\"",
+    "confidence": 97,
+    "poQty": "5",
+    "poUnitPrice": "15,600.00",
+    "poExVat": "78,000.00",
+    "poUOM": "กิโลกรัม",
+    "invQty": "5",
+    "invUnitPrice": "15,600.00",
+    "invExVat": "78,000.00",
+    "invUOM": "กิโลกรัม"
+  }
+];
+
+const PERF_SUPPLIERS = Object.keys(FALLBACK_SUPPLIER_MASTER).slice(0, 10);
+const EXTRA_ROWS = [];
+for (let i = 0; i < 90; i++) {
+  const supplier = PERF_SUPPLIERS[i % PERF_SUPPLIERS.length];
+  const pool = FALLBACK_SUPPLIER_MASTER[supplier];
+  const item = pool[i % pool.length];
+  const confidence = 30 + ((i * 7) % 71);
+  const isExact = confidence >= 97 && !!item.supplierItemCode;
+  const qty = 10 + (i % 40) * 25;
+  const price = (1 + (i % 15) * 3.4).toFixed(2);
+  const exVat = (qty * parseFloat(price)).toFixed(2);
+  const uom = item.supplierUom || "หน่วย";
+  EXTRA_ROWS.push({
+    id: 1000 + i,
+    invoiceNo: "INV-2026-" + (500 + i),
+    poNo: "PO-" + (600 + i),
+    supplierNameOcr: supplier,
+    ocrItemCode: item.supplierItemCode,
+    ocrDesc: item.supplierItemName,
+    matchType: isExact ? "Exact" : "Fuzzy",
+    matchResult: item.supplierItemName,
+    confidence: isExact ? 100 : confidence,
+    poQty: qty.toLocaleString("en-US"),
+    poUnitPrice: price,
+    poExVat: Number(exVat).toLocaleString("en-US", { minimumFractionDigits: 2 }),
+    poUOM: uom,
+    invQty: qty.toLocaleString("en-US"),
+    invUnitPrice: price,
+    invExVat: Number(exVat).toLocaleString("en-US", { minimumFractionDigits: 2 }),
+    invUOM: uom,
+  });
+}
+
+// Business rule for the built-in MOCK dataset only (RAW_ROWS below): a Supplier Item Code
+// (OCR) is treated as a reliable identifier — if OCR captured one, the row is always an Exact
+// match at 100% confidence. NOT applied to real imported files anymore — IT's real pipeline
+// (§ need_review) already makes its own Match Type/review determination per row, including
+// cases where a Supplier Item Code is present but the row is still Fuzzy/Need Review; forcing
+// Exact/100 on top of that would silently override IT's real judgment. See parseImportedRows().
+function applyItemCodeExactRule(row) {
+  const hasItemCode = !!(row.ocrItemCode && String(row.ocrItemCode).trim());
+  return hasItemCode ? { ...row, matchType: "Exact", confidence: 100 } : row;
+}
+
+// Fills a deterministic synthetic Character Error Rate for any Fuzzy mock row that doesn't
+// already have one hand-specified — keeps the 3-tier pass/fail rule (isRowPassing) exercised
+// across the whole mock dataset without hand-editing every row.
+function withDefaultCharacterErrorRate(row) {
+  if (row.matchType !== "Fuzzy" || row.characterErrorRate !== undefined) return row;
+  return { ...row, characterErrorRate: (row.id * 13) % 15 };
+}
+
+// Synthetic documentId so the export round-trip (§ document_id) is eyeball-verifiable against
+// the mock dataset without needing a real imported file during dev/testing.
+function withMockDocumentId(row) {
+  return { ...row, documentId: "DOC-" + row.id };
+}
+
+const RAW_ROWS = BASE_ROWS.concat(EXTRA_ROWS).map(applyItemCodeExactRule).map(withDefaultCharacterErrorRate).map(withMockDocumentId);
+
+// Validation progress persists in sessionStorage (not localStorage) until export succeeds —
+// refreshing the tab must not lose a user's in-progress review of a batch, but fully closing
+// the tab/browser and reopening the app later must always start clean (no stale batch from a
+// previous session left showing — confirmed with the user, was confusing during testing).
+const STORAGE_KEY = "imv_validation_state";
+// v5: rows gained freeTextSupplier/freeTextItem flags and selectedItem.isFreeText (§ free-text
+// entry) — purely additive, but bumped per this project's practice of bumping on any meaningful
+// row-shape change.
+const SCHEMA_VERSION = 5;
+
+function loadPersistedRows() {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.version === SCHEMA_VERSION && Array.isArray(parsed.rows)) {
+      return parsed.rows;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function persistRows(rows) {
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SCHEMA_VERSION, rows }));
+  } catch {}
+}
+
+function clearPersistedRows() {
+  try {
+    sessionStorage.removeItem(STORAGE_KEY);
+  } catch {}
+}
+
+// Whitespace/case-insensitive key for item-name comparison. IT's real matched-item-name text
+// (from their own pipeline) doesn't always byte-match Supplier Master's spelling exactly — seen
+// in real data as spacing drift like "16มมx10ม SD40" vs Master's "16มมx10มSD40" on ~24% of
+// distinct Fuzzy matches. Without this, rows IT already marked "no review needed" would still
+// fail to auto-select in the dropdown, forcing a manual pick on every one — confirmed with the
+// user to loosen matching here rather than leave those rows unresolved.
+function normalizeItemName(s) {
+  return String(s || "").replace(/\s+/g, "").toLowerCase();
+}
+
+function findMasterItem(master, supplier, desc, code) {
+  const pool = master[supplier] || [];
+  // Item code is a more reliable match key than the free-text name — codes rarely have the
+  // spelling/spacing drift that trips up exact name matching, so prefer it when OCR has one.
+  if (code) {
+    const byCode = pool.find(it => it.supplierItemCode && it.supplierItemCode === code);
+    if (byCode) return byCode;
+  }
+  const exact = pool.find(it => it.supplierItemName === desc);
+  if (exact) return exact;
+  const normDesc = normalizeItemName(desc);
+  if (!normDesc) return null;
+  return pool.find(it => normalizeItemName(it.supplierItemName) === normDesc) || null;
+}
+
+const FUZZY_CONFIDENCE_THRESHOLD = 92;
+// Widened 7.5 -> 9 per the user's revised 3-tier rule (confirmed): tier 1 (>=92%, CER<=7.5) and
+// tier 2 (>=92%, CER 7.5-9) now both pass — tier 2 used to be its own "ต้องตรวจ" case but the
+// user wants it to pass AND have its Item auto-selected, same as tier 1, since Item auto-fill in
+// `displayRows` already follows directly from `isRowPassing()`. Tier 3 (<92%, roughly down to
+// ~80%) is unchanged — still "ต้องตรวจ", Item never auto-filled. Do not split this back into a
+// separate 7.5/9 branch — a single threshold value is exactly the new rule.
+const CHARACTER_ERROR_RATE_THRESHOLD = 9;
+
+// Pass/fail source of truth: this app's OWN confidence/CER bar, applied uniformly to every row
+// regardless of what IT's `need_review` column says (confirmed with the user: "ยังไงก็ต้องใช้
+// กฎ" — the rule always applies, no matter what need_review's value is). Exact match always
+// passes structurally (IT's real file never carries a confidence/CER for Exact Match rows at
+// all). Fuzzy passes only when confidence >= 92% AND CER <= 9% (revised threshold, see above).
+// `needReviewRaw` (§ parseImportedRows) is parsed and kept on the row but is NOT used to decide
+// pass/fail. At the original 7.5% CER threshold this rule was verified to reproduce the exact
+// same pass/fail split IT's own need_review implied across all 546 real rows. The CER threshold
+// has since been widened to 9% (above) at the user's explicit request — this is now a
+// deliberate, acknowledged divergence from IT's need_review for the CER 7.5-9% tier (this app's
+// own rule wins, by design, same as before the threshold change).
+function isRowPassing(row) {
+  if (row.matchType === "Exact") return true;
+  const cer = Number(row.characterErrorRate);
+  return row.confidence >= FUZZY_CONFIDENCE_THRESHOLD && Number.isFinite(cer) && cer <= CHARACTER_ERROR_RATE_THRESHOLD;
+}
+
+function diffStrings(a, b) {
+  const n = a.length, m = b.length;
+  const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) {
+    dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  }
+  let i = 0, j = 0; const aParts = []; const bParts = [];
+  while (i < n && j < m) {
+    if (a[i] === b[j]) { aParts.push({ ch: a[i], same: true }); bParts.push({ ch: b[j], same: true }); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) { aParts.push({ ch: a[i], same: false }); i++; }
+    else { bParts.push({ ch: b[j], same: false }); j++; }
+  }
+  while (i < n) { aParts.push({ ch: a[i], same: false }); i++; }
+  while (j < m) { bParts.push({ ch: b[j], same: false }); j++; }
+  return { aParts, bParts };
+}
+
+function groupRuns(parts, removedStyle, addedStyle) {
+  const runs = [];
+  for (const p of parts) {
+    const style = p.same ? "" : (removedStyle || addedStyle);
+    if (runs.length && runs[runs.length - 1].same === p.same) runs[runs.length - 1].text += p.ch;
+    else runs.push({ text: p.ch, same: p.same, style });
+  }
+  return runs;
+}
+
+function styleObj(str) {
+  if (!str) return undefined;
+  const obj = {};
+  str.split(";").forEach(rule => {
+    const idx = rule.indexOf(":");
+    if (idx === -1) return;
+    const prop = rule.slice(0, idx).trim();
+    const val = rule.slice(idx + 1).trim();
+    if (!prop || !val) return;
+    const camel = prop.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+    obj[camel] = val;
+  });
+  return obj;
+}
+
+// Bangkok has no DST, but the browser running this app might not be set to Thailand time —
+// use Intl explicitly rather than trusting the system's local clock/timezone.
+function formatBangkokTimestamp(date) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(date);
+  const get = type => parts.find(p => p.type === type).value;
+  return `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")}`;
+}
+
+// Filename-safe timestamp (no ":"/" ", unlike formatBangkokTimestamp above which is for the
+// "Exported At" cell) — YYYYMMDD_HHMMSS in Bangkok time, per the user's requested format.
+function formatFileTimestamp(date) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+  }).formatToParts(date);
+  const get = type => parts.find(p => p.type === type).value;
+  return `${get("year")}${get("month")}${get("day")}_${get("hour")}${get("minute")}${get("second")}`;
+}
+
+function buildExportRows(displayRows) {
+  // Generated fresh per export call (not the import time) — re-exporting later reflects that
+  // later moment, not when the batch was first pulled in.
+  const exportedAt = formatBangkokTimestamp(new Date());
+
+  // Passthrough columns (unknown-to-this-app headers from the import file, e.g. an ad hoc
+  // "Note" column) vary per file — export the union of every header seen across all rows,
+  // using each column's own original header text, blank where a row didn't have it.
+  const passthroughHeaders = [];
+  const seenHeaders = new Set();
+  displayRows.forEach(r => Object.keys(r.passthroughFields || {}).forEach(header => {
+    if (!seenHeaders.has(header)) { seenHeaders.add(header); passthroughHeaders.push(header); }
+  }));
+
+  // Column names/order mirror IT's real input file exactly (confirmed with the user — makes
+  // downstream re-processing on IT's side easier, since the output is the input file with
+  // review results appended rather than a differently-shaped file). App-added validation
+  // columns (Selected Supplier, RVN Item Code/Name, Confirmed By, Exported At) come after all
+  // input-mirrored columns; passthrough (unrecognized) columns come last, same as before.
+  return displayRows.map(r => {
+    const out = {
+      "Invoice No": r.invoiceNo,
+      "Supplier Name": r.supplierNameOcr,
+      "Supplier Item Code": r.ocrItemCode,
+      "Item Description": r.ocrDesc,
+      "Invoice Qty": r.invQty,
+      "Invoice Unit Price": r.invUnitPrice,
+      "Invoice Amount ex.VAT": r.invExVat,
+      "Invoice UOM": r.invUOM,
+    };
+    OPTIONAL_IMPORT_COLUMNS.forEach(([header, field]) => {
+      out[header] = r[field] !== undefined ? r[field] : "";
+    });
+    out["Match Type"] = r.matchType;
+    out["Matched Item Name"] = r.matchResult;
+    out["fuzzing_score"] = r.confidence;
+    out["character_error_rate"] = Number.isFinite(r.characterErrorRate) ? r.characterErrorRate : "";
+    out["need_review"] = r.needReviewRaw || "";
+    out["doc_id"] = r.documentId || "";
+
+    out["Selected Supplier"] = r.selectedSupplier === "— ยังไม่เลือก —" ? "" : r.selectedSupplier;
+    out["Selected Item"] = r.selectedItem ? r.selectedItem.supplierItemName : "";
+    passthroughHeaders.forEach(header => {
+      const value = (r.passthroughFields || {})[header];
+      out[header] = value !== undefined ? value : "";
+    });
+    out["Confirmed By"] = r.isUserConfirmed ? "User" : (r.isAutoFilled ? "Auto" : "");
+    out["Exported At"] = exportedAt;
+    return out;
+  });
+}
+
+function buildExportWorkbook(displayRows) {
+  const data = buildExportRows(displayRows);
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Item Mapping Validated");
+  return wb;
+}
+
+// Deliberately a narrower column set than buildExportRows (confirmed with the user) — this
+// export exists purely so IT can quickly see which Supplier/Item pairs need adding to Oracle,
+// not to round-trip the full validation file. Do not add the other buildExportRows columns
+// (Match Type, fuzzing_score, etc.) back in here.
+function buildFreeTextExportRows(displayRows) {
+  const exportedAt = formatBangkokTimestamp(new Date());
+  return displayRows.map(r => ({
+    "Invoice No": r.invoiceNo,
+    "Supplier Name": r.supplierNameOcr,
+    "Supplier Item Code": r.ocrItemCode,
+    "Item Description": r.ocrDesc,
+    "Selected Supplier": r.selectedSupplier === "— ยังไม่เลือก —" ? "" : r.selectedSupplier,
+    "Selected Item": r.selectedItem ? r.selectedItem.supplierItemName : "",
+    "Exported At": exportedAt,
+  }));
+}
+
+function buildFreeTextExportWorkbook(displayRows) {
+  const data = buildFreeTextExportRows(displayRows);
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Free Text Entries");
+  return wb;
+}
+
+// Writes the export via the File System Access API's save picker (Chrome/Edge only) when
+// available, falling back to a normal download otherwise (Firefox/Safari, or file:// — see
+// below). Always prompts fresh, every export — the earlier "remember the picked file and
+// silently overwrite it on later exports" behavior (with a "เปลี่ยนไฟล์ปลายทาง" link to reset it)
+// was explicitly removed at the user's request: always let the user choose the destination.
+// **Do not reintroduce a remembered/reused file handle for export.**
+// The File System Access API (showOpenFilePicker/showSaveFilePicker) reports as available
+// under file:// origins in Chromium/Edge, but writes made via createWritable() have been
+// observed to silently produce a corrupted .xlsx (no error thrown, but Excel reports "file
+// format or extension is not valid") on at least one real Windows/Edge local setup — likely an
+// OS/AV-level interaction with the atomic swap-file rename the API does on close(). Since
+// file:// is exactly how this app gets opened when double-clicked locally (the common
+// non-Codespace workflow), the native picker path is disabled there entirely; the classic
+// <input>/download fallback below has been verified reliable end-to-end and is used instead.
+function supportsFileSystemAccess() {
+  return location.protocol !== "file:" && !!window.showOpenFilePicker && !!window.showSaveFilePicker;
+}
+
+async function writeExportFile(displayRows) {
+  const wb = buildExportWorkbook(displayRows);
+
+  if (supportsFileSystemAccess()) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: `${formatFileTimestamp(new Date())}.xlsx`,
+        types: [{ description: "Excel file", accept: { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"] } }],
+      });
+      const bytes = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+      const writable = await handle.createWritable();
+      await writable.write(bytes);
+      await writable.close();
+      return true;
+    } catch (err) {
+      if (err && err.name === "AbortError") return false; // user cancelled the picker
+      // any other error: fall through to the classic download below
+    }
+  }
+
+  XLSX.writeFile(wb, `${formatFileTimestamp(new Date())}.xlsx`);
+  return true;
+}
+
+// Column headers must match exactly what IT's OCR + matching pipeline outputs (agreed spec).
+// PO columns (PO No/Qty/Unit Price/Amount ex.VAT/UOM) were dropped from the required import
+// spec — the app no longer asks IT for PO data at all, matching the on-screen removal of PO
+// display. Re-add them here if a future export/import spec brings PO back.
+//
+// Header text below matches IT's real production file ("inv_for_validation.xlsx") verbatim —
+// no more "(OCR)" suffix (that was only ever this app's chat-readability shorthand, never the
+// literal header IT used) and the previously-placeholder CER/need_review/doc_id header names
+// are now confirmed exact.
+const CHARACTER_ERROR_RATE_HEADER = "character_error_rate";
+const NEED_REVIEW_HEADER = "need_review";
+const IMPORT_COLUMNS = [
+  ["Invoice No", "invoiceNo"],
+  ["Supplier Name", "supplierNameOcr"],
+  ["Supplier Item Code", "ocrItemCode"],
+  ["Item Description", "ocrDesc"],
+  ["Invoice Qty", "invQty"],
+  ["Invoice Unit Price", "invUnitPrice"],
+  ["Invoice Amount ex.VAT", "invExVat"],
+  ["Invoice UOM", "invUOM"],
+  ["Match Type", "matchType"],
+  ["Matched Item Name", "matchResult"],
+  ["fuzzing_score", "confidence"],
+  [CHARACTER_ERROR_RATE_HEADER, "characterErrorRate"],
+  [NEED_REVIEW_HEADER, "needReviewRaw"],
+];
+const IMPORT_NUMERIC_FIELDS = ["invQty", "invUnitPrice", "invExVat"];
+
+// doc_id isn't shown anywhere on screen — it exists purely so IT can round-trip a link back to
+// the source document through the exported file. Kept optional on import (not required) even
+// though IT's real file always has it, in case a future test file doesn't.
+const DOCUMENT_ID_HEADER = "doc_id";
+
+// Closed list of supplier-specific Invoice-only fields (Discount, Freight, Deposit, Rounding,
+// Weight, ...). Replaces an earlier fully-dynamic "any extra column becomes a field"
+// approach — IT confirmed the real set is exactly these 6, so anything else in the sheet
+// beyond IMPORT_COLUMNS/this list/document_id is now deliberately ignored, not auto-displayed.
+// [excel header, internal field name, display label] — label is separate from the header so
+// the on-screen "ข้อมูลเพิ่มเติมจาก Invoice" section can show its own copy independent of
+// whatever exact text IT ends up using for the column.
+const OPTIONAL_IMPORT_COLUMNS = [
+  ["Invoice Discount by Line", "discountByLine", "Discount by Line"],
+  ["Invoice Discount at end of bill", "discountEndOfBill", "Discount at end of bill"],
+  ["Invoice Delivery fee", "deliveryFee", "Delivery fee"],
+  ["Invoice Weight", "weight", "Weight"],
+  ["Invoice Deposit", "deposit", "Deposit"],
+  ["Invoice Rounding", "rounding", "Rounding"],
+];
+
+// Mirrors the formatting commitEditField() applies to manually-edited numeric cells,
+// so imported and hand-edited values render identically.
+function formatImportedNumber(raw) {
+  const num = typeof raw === "number" ? raw : parseFloat(String(raw).replace(/,/g, ""));
+  if (isNaN(num)) return "";
+  const hasDecimal = num % 1 !== 0;
+  return num.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: hasDecimal ? 2 : 0 });
+}
+
+function findMissingImportColumns(sheetRows) {
+  if (!sheetRows.length) return IMPORT_COLUMNS.map(([header]) => header);
+  const headers = Object.keys(sheetRows[0]);
+  return IMPORT_COLUMNS.filter(([header]) => !headers.includes(header)).map(([header]) => header);
+}
+
+// Every header this app recognizes by name — anything else in the sheet is "unknown" to it.
+function knownImportHeaders() {
+  return IMPORT_COLUMNS.map(([header]) => header)
+    .concat(OPTIONAL_IMPORT_COLUMNS.map(([header]) => header))
+    .concat([DOCUMENT_ID_HEADER]);
+}
+
+function parseImportedRows(sheetRows) {
+  const known = knownImportHeaders();
+  const passthroughHeaders = sheetRows.length ? Object.keys(sheetRows[0]).filter(h => !known.includes(h)) : [];
+
+  return sheetRows.map((raw, idx) => {
+    const row = { id: idx + 1 };
+    IMPORT_COLUMNS.forEach(([header, field]) => {
+      let value = raw[header] !== undefined ? raw[header] : "";
+      if (IMPORT_NUMERIC_FIELDS.includes(field)) value = formatImportedNumber(value);
+      else if (field === "confidence") value = Math.round(Math.max(0, Math.min(100, Number(value) || 0)));
+      // IT's real file uses "Exact Match" (not the shorter "Exact" this app's mock data uses
+      // internally) — match on a leading "exact" so both forms, and a blank/unmatched Match
+      // Type (seen in real data: ~1% of rows where IT's model found no candidate at all), work.
+      // A blank/no-match row falls into "Fuzzy" here; `need_review` (always "Need Review" for
+      // these) is what actually forces the review flag, this is just the badge text.
+      else if (field === "matchType") value = /^exact/i.test(String(value).trim()) ? "Exact" : "Fuzzy";
+      else if (field === "characterErrorRate") value = value === "" || value === undefined ? NaN : Number(value);
+      else if (field === "needReviewRaw") value = value === undefined || value === null ? "" : String(value).trim();
+      row[field] = value;
+    });
+
+    OPTIONAL_IMPORT_COLUMNS.forEach(([header, field]) => {
+      const rawValue = raw[header];
+      if (rawValue === undefined || rawValue === null || String(rawValue).trim() === "") {
+        row[field] = undefined;
+        return;
+      }
+      const numeric = formatImportedNumber(rawValue);
+      row[field] = numeric !== "" ? numeric : String(rawValue);
+    });
+
+    row.documentId = raw[DOCUMENT_ID_HEADER] !== undefined ? String(raw[DOCUMENT_ID_HEADER]) : "";
+
+    // Columns this app doesn't recognize (e.g. an ad hoc "Note" column IT adds) are never
+    // shown on screen — but the raw values are still carried through untouched so the export
+    // can round-trip them back out. IT may rely on data in these columns downstream even
+    // though this screen has no use for it.
+    row.passthroughFields = {};
+    passthroughHeaders.forEach(header => { row.passthroughFields[header] = raw[header]; });
+
+    // No applyItemCodeExactRule() here — real imports keep IT's own Match Type/need_review
+    // determination as-is, even on rows that also have a Supplier Item Code (see the comment
+    // on applyItemCodeExactRule for why forcing Exact/100 would be wrong for real data).
+    return row;
+  });
+}
+
+// Debug-only switches (no props panel in the standalone app; flip in code to preview these states).
+const SIMULATE_ERROR = false;
+const SIMULATE_EMPTY_DATA = false;
+const FORCE_CONFIRM_ALL = false;
+
+// Excel-style sortable/filterable columns (§ requirement 1) — one entry per header that gets
+// a sort-arrow + filter-funnel control. `type: "number"` sorts numerically; everything else
+// sorts as a locale string compare. Distinct filter values are computed from the row's own
+// field of this name (see distinctValuesFor in App()).
+const SORTABLE_COLUMNS = [
+  { field: "invoiceNo", label: "Invoice No.", width: 120 },
+  { field: "supplierNameOcr", label: "Supplier Name", width: 210 },
+  { field: "ocrItemCode", label: "Supplier Item Code (OCR)", width: 130 },
+  { field: "ocrDesc", label: "OCR Result (Description)", width: 260 },
+  { field: "matchType", label: "Match Type", width: 90 },
+  { field: "matchResult", label: "Matching Model Result", width: 260 },
+  { field: "confidence", label: "% Confidence", width: 180, type: "number" },
+];
+
+function App() {
+  const { useState, useEffect, useRef } = React;
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  // Generic per-column sort/filter for the Excel-like header controls (§ requirement 1) —
+  // replaces the old confidence-only sortDir state entirely.
+  const [columnSort, setColumnSort] = useState({ field: null, dir: null });
+  const [columnFilters, setColumnFilters] = useState({});
+  const [openFilterCol, setOpenFilterCol] = useState(null);
+  // Draft selection while a filter popover is open (Set or null when no popover is open) —
+  // checkboxes only edit this; columnFilters (the applied filter) is only written on "OK", per
+  // the user's request to match Excel's own filter-popover OK/Cancel semantics rather than
+  // applying every checkbox click live. Cancel / close-without-OK just discards this untouched.
+  const [draftFilterValues, setDraftFilterValues] = useState(null);
+  const [filterSearchQuery, setFilterSearchQuery] = useState("");
+  // Popover position, computed from the filter button's own getBoundingClientRect() at click
+  // time (§ real cross-browser bug — see openFilterPopover). position:fixed + these JS-computed
+  // coordinates, NOT position:absolute anchored to the <th> via position:relative.
+  const [filterPopoverPos, setFilterPopoverPos] = useState({ top: 0, left: 0 });
+  const [openCell, setOpenCell] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showOnlyReview, setShowOnlyReview] = useState(false);
+  const [expandedRows, setExpandedRows] = useState({});
+  const [rows, setRows] = useState(() => loadPersistedRows() || []);
+  const [editingCell, setEditingCell] = useState(null);
+  const [editValue, setEditValue] = useState("");
+  const [hoveredField, setHoveredField] = useState(null);
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [importError, setImportError] = useState("");
+  const [supplierMaster, setSupplierMaster] = useState(FALLBACK_SUPPLIER_MASTER);
+  const [supplierMasterSource, setSupplierMasterSource] = useState("built-in");
+  // Picker dialog additions: keyboard highlight index, drag offset (null = default
+  // centered), and session-only "recently used" lists (§ requirements 3/4/6). All reset
+  // on every fresh dialog open in openCellAt() except the recent lists, which persist for
+  // the whole session (in-memory only — intentionally not written to sessionStorage).
+  const [highlightIndex, setHighlightIndex] = useState(0);
+  const [dialogPos, setDialogPos] = useState(null);
+  const [recentSuppliers, setRecentSuppliers] = useState([]);
+  const [recentItems, setRecentItems] = useState([]);
+  const loadTimerRef = useRef(null);
+  const toastTimerRef = useRef(null);
+  const importInputRef = useRef(null);
+  const dragStateRef = useRef(null);
+  const tableScrollRef = useRef(null);
+  const optionRefs = useRef({});
+
+  useEffect(() => {
+    loadTimerRef.current = setTimeout(() => {
+      setIsLoading(false);
+      setHasError(SIMULATE_ERROR);
+    }, 900);
+    return () => {
+      clearTimeout(loadTimerRef.current);
+      clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
+  // Try to load a live Supplier Master file sitting next to index.html on every page load. Only
+  // works over http(s) (fetch() of a local file is blocked under file://) — silently keeps the
+  // built-in FALLBACK_SUPPLIER_MASTER if the fetch fails for any reason (file missing, file://
+  // origin, network error). Not a user-facing error: this is a best-effort freshness check.
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(SUPPLIER_MASTER_FILENAME, { cache: "no-store" });
+        if (!res.ok) return;
+        const buf = await res.arrayBuffer();
+        const wb = XLSX.read(buf, { type: "array" });
+        const sheetRows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "" });
+        const parsed = parseSupplierMasterRows(sheetRows);
+        if (Object.keys(parsed).length) {
+          setSupplierMaster(parsed);
+          setSupplierMasterSource("file");
+        }
+      } catch (err) {
+        // fetch blocked (file://) or file not present — keep the built-in fallback quietly
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    persistRows(rows);
+  }, [rows]);
+
+
+  function retryLoad() {
+    setIsLoading(true);
+    setHasError(false);
+    clearTimeout(loadTimerRef.current);
+    loadTimerRef.current = setTimeout(() => {
+      setIsLoading(false);
+      setHasError(SIMULATE_ERROR);
+    }, 900);
+  }
+
+  function openCellAt(rowId, type) {
+    setOpenCell({ rowId, type });
+    setSearchQuery("");
+    setHighlightIndex(0);
+    setDialogPos(null);
+  }
+  function closeDropdown() { setOpenCell(null); setSearchQuery(""); }
+  function pushRecent(list, entry, keyOf, max) {
+    const key = keyOf(entry);
+    const rest = list.filter(x => keyOf(x) !== key);
+    return [entry, ...rest].slice(0, max);
+  }
+  function selectSupplier(rowId, supplier) {
+    setRows(rs => rs.map(r => r.id === rowId ? { ...r, selectedSupplier: supplier, selectedItem: null, freeTextSupplier: false, freeTextItem: false, userTouched: true } : r));
+    setRecentSuppliers(list => pushRecent(list, supplier, s => s, 3));
+    setOpenCell(null); setSearchQuery("");
+  }
+  function selectItem(rowId, item) {
+    setRows(rs => rs.map(r => r.id === rowId ? { ...r, selectedItem: item, freeTextItem: false, userTouched: true } : r));
+    setRecentItems(list => pushRecent(list, item, it => it.supplierItemCode + "||" + it.supplierItemName, 3));
+    setOpenCell(null); setSearchQuery("");
+  }
+  // Free-text entry (§ requirement 7): used when Supplier/Item Master hasn't been updated
+  // yet in Oracle and the real value simply isn't in the picker list. Flags the row so it's
+  // visually distinct (amber tint + "พิมพ์เอง" tag, see displayRows) and so it's included in
+  // the dedicated free-text-only export. Do not infer "free text" from absence in
+  // supplierMaster instead of this explicit flag — it's less robust across re-renders/export.
+  function selectFreeTextSupplier(rowId, text) {
+    setRows(rs => rs.map(r => r.id === rowId ? { ...r, selectedSupplier: text, selectedItem: null, freeTextSupplier: true, freeTextItem: false, userTouched: true } : r));
+    setOpenCell(null); setSearchQuery("");
+  }
+  function selectFreeTextItem(rowId, text) {
+    const item = { supplierItemCode: "", supplierItemName: text, supplierUom: "", isFreeText: true };
+    setRows(rs => rs.map(r => r.id === rowId ? { ...r, selectedItem: item, freeTextItem: true, userTouched: true } : r));
+    setOpenCell(null); setSearchQuery("");
+  }
+  function toggleExpand(rowId) {
+    setExpandedRows(er => ({ ...er, [rowId]: !er[rowId] }));
+  }
+  function setHoverField(rowId, field) {
+    setHoveredField(rowId ? { rowId, field } : null);
+  }
+  function startEditField(rowId, field, currentValue) {
+    setEditingCell({ rowId, field }); setEditValue(currentValue);
+  }
+  function cancelEditField() { setEditingCell(null); setEditValue(""); }
+  function commitEditField() {
+    if (!editingCell) return;
+    const { rowId, field } = editingCell;
+    const isNumeric = field !== "poUOM" && field !== "invUOM";
+    let finalValue = editValue;
+    if (isNumeric) {
+      const num = parseFloat(String(editValue).replace(/,/g, ""));
+      finalValue = isNaN(num) ? "" : num.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: (String(editValue).includes(".") ? 2 : 0) });
+    }
+    setRows(rs => rs.map(r => r.id === rowId ? { ...r, [field]: finalValue, edited: { ...(r.edited || {}), [field]: true } } : r));
+    setEditingCell(null); setEditValue("");
+  }
+  function bulkConfirmPassed() {
+    setRows(rs => rs.map(r => {
+      if (!isRowPassing(r)) return r;
+      const supplier = r.selectedSupplier !== undefined ? r.selectedSupplier : r.supplierNameOcr;
+      const item = r.selectedItem !== undefined ? r.selectedItem : findMasterItem(supplierMaster, r.supplierNameOcr, r.matchResult, r.ocrItemCode);
+      return { ...r, selectedSupplier: supplier, selectedItem: item, userTouched: true };
+    }));
+  }
+  async function confirmExport() {
+    const wrote = await writeExportFile(displayRows);
+    if (!wrote) return; // user cancelled the file picker — leave state untouched
+    setShowExportConfirm(false);
+    fireToast("เสร็จสิ้นและส่งออกข้อมูลสำเร็จแล้ว");
+    clearPersistedRows();
+  }
+
+  function fireToast(message) {
+    setToastMessage(message);
+    setShowToast(true);
+    clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setShowToast(false), 2800);
+  }
+
+  // Shared core for both import paths (native file picker and the <input type="file">
+  // fallback) — takes a File/Blob, validates, and applies it to state.
+  async function importFromFile(file) {
+    const hasProgress = rows.some(r => r.userTouched || r.isUserConfirmed || (r.edited && Object.keys(r.edited).length));
+    if (hasProgress && !window.confirm("มีข้อมูลที่กำลังตรวจสอบอยู่ การนำเข้าไฟล์ใหม่จะแทนที่ข้อมูลเดิมทั้งหมด ต้องการดำเนินการต่อหรือไม่?")) {
+      return false;
+    }
+    try {
+      const data = new Uint8Array(await file.arrayBuffer());
+      const wb = XLSX.read(data, { type: "array" });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const sheetRows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+      if (!sheetRows.length) {
+        setImportError("ไฟล์นี้ไม่มีข้อมูล");
+        return false;
+      }
+      const missing = findMissingImportColumns(sheetRows);
+      if (missing.length) {
+        setImportError(`ไฟล์นี้ไม่มีคอลัมน์ที่จำเป็น: ${missing.join(", ")}`);
+        return false;
+      }
+
+      const parsed = parseImportedRows(sheetRows);
+      setRows(parsed);
+      setExpandedRows({});
+      setShowOnlyReview(false);
+      setImportError("");
+      fireToast(`นำเข้าไฟล์ Excel สำเร็จแล้ว (${parsed.length} รายการ)`);
+      return true;
+    } catch (err) {
+      setImportError("ไม่สามารถอ่านไฟล์นี้ได้ กรุณาตรวจสอบว่าเป็นไฟล์ Excel (.xlsx) ที่ถูกต้อง");
+      return false;
+    }
+  }
+
+  async function importViaFilePicker() {
+    setImportError("");
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description: "Excel file", accept: { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"] } }],
+        multiple: false,
+      });
+      const file = await handle.getFile();
+      await importFromFile(file);
+    } catch (err) {
+      if (err && err.name === "AbortError") return; // user cancelled the picker
+      setImportError("ไม่สามารถอ่านไฟล์นี้ได้ กรุณาตรวจสอบว่าเป็นไฟล์ Excel (.xlsx) ที่ถูกต้อง");
+    }
+  }
+
+  function triggerImport() {
+    if (supportsFileSystemAccess()) { importViaFilePicker(); return; }
+    setImportError("");
+    if (importInputRef.current) importInputRef.current.click();
+  }
+
+  // Fallback for browsers without the File System Access API (Firefox/Safari) — reads the
+  // file but can never get a writable handle, so Export from these browsers keeps using its
+  // own existing showSaveFilePicker-or-download fallback, unaffected by this path.
+  function handleImportFile(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    importFromFile(file);
+  }
+
+  const q = (searchQuery || "").toLowerCase();
+
+  const confMeta = (pass) => pass
+    ? { label: "ผ่าน", bg: "oklch(94% 0.035 150)", text: "oklch(35% 0.09 150)", dot: "oklch(55% 0.11 150)" }
+    : { label: "ต้องตรวจ", bg: "oklch(94% 0.045 25)", text: "oklch(42% 0.14 25)", dot: "oklch(58% 0.15 25)" };
+
+  const effectiveRows = SIMULATE_EMPTY_DATA ? [] : rows;
+
+  const displayRows = effectiveRows.map(r => {
+    const effConfidence = r.matchType === "Exact" ? 100 : r.confidence;
+    const pass = isRowPassing(r);
+    // Supplier auto-fill is intentionally decoupled from the Item pass/fail gate (unlike
+    // Item below) — the user confirmed Supplier should auto-select whenever the OCR name
+    // matches a real Supplier Master key, even on rows that still need manual Item review.
+    // Do not reintroduce `(pass || FORCE_CONFIRM_ALL)` here.
+    const defaultSupplier = supplierMaster[r.supplierNameOcr] ? r.supplierNameOcr : null;
+    const defaultItem = (pass || FORCE_CONFIRM_ALL) ? findMasterItem(supplierMaster, r.supplierNameOcr, r.matchResult, r.ocrItemCode) : null;
+    const selectedSupplier = r.selectedSupplier !== undefined ? r.selectedSupplier : defaultSupplier;
+    const selectedItem = r.selectedItem !== undefined ? r.selectedItem : defaultItem;
+
+    const cm = confMeta(pass);
+    const confirmed = !!selectedItem;
+
+    const editable = (field, label, value) => {
+      const isEditing = !!editingCell && editingCell.rowId === r.id && editingCell.field === field;
+      const isEdited = !!(r.edited && r.edited[field]);
+      const isHovered = !!hoveredField && hoveredField.rowId === r.id && hoveredField.field === field;
+      return {
+        field, label, value, isEditing, notEditing: !isEditing,
+        isEdited,
+        showPencil: isHovered && !isEditing && !isEdited,
+        underline: isEdited ? "border-bottom:1px dashed var(--color-accent-700)" : "",
+        onStart: () => startEditField(r.id, field, value),
+        onHoverIn: () => setHoverField(r.id, field),
+        onHoverOut: () => setHoverField(null, null),
+      };
+    };
+    const invQtyF = editable("invQty", "Invoice Qty", r.invQty);
+    const invPriceF = editable("invUnitPrice", "Invoice Unit Price", r.invUnitPrice);
+    const invVatF = editable("invExVat", "Invoice ex.VAT", r.invExVat);
+    const invUomF = editable("invUOM", "Invoice UOM", r.invUOM);
+
+    // PO fields (poQty/poUnitPrice/poExVat/poUOM/poNo) are still imported and exported (§5 spec)
+    // but no longer rendered anywhere in the UI — the user asked for PO data to disappear from
+    // the web app entirely, keeping only the Invoice side visible/editable here.
+    const compareFields = [
+      { label: "Qty", invField: invQtyF },
+      { label: "Unit Price", invField: invPriceF },
+      { label: "Amount ex.VAT", invField: invVatF },
+      { label: "UOM", invField: invUomF },
+    ];
+
+    // Invoice-only fields (Discount, Freight, Deposit, Rounding, Weight, ...) — a fixed, named
+    // list (§ OPTIONAL_IMPORT_COLUMNS), not a scan of unknown columns. No PO counterpart to
+    // diff against, so no mismatch styling/check here, just editable like the fields above.
+    const extraCompareFields = OPTIONAL_IMPORT_COLUMNS
+      .filter(([, field]) => r[field] !== undefined)
+      .map(([, field, label]) => ({ label, invField: editable(field, label, r[field]) }));
+
+    const diff = diffStrings(r.ocrDesc, r.matchResult);
+    const ocrDiffRuns = groupRuns(diff.aParts, "color:oklch(50% 0.18 25);text-decoration:line-through;background:oklch(94% 0.05 25)");
+    const modelDiffRuns = groupRuns(diff.bParts, null, "color:oklch(35% 0.13 150);background:oklch(94% 0.05 150)");
+
+    return {
+      ...r,
+      confidence: effConfidence,
+      selectedSupplier: selectedSupplier || "— ยังไม่เลือก —",
+      selectedItem,
+      confLabel: cm.label, confBg: cm.bg, confText: cm.text, confDot: cm.dot,
+      ocrHasCode: !!r.ocrItemCode, ocrMissing: !r.ocrItemCode,
+      matchTypeTagClass: r.matchType === "Exact" ? "tag tag-neutral" : "tag tag-accent",
+      confirmed,
+      isUserConfirmed: confirmed && !!r.userTouched,
+      isAutoFilled: confirmed && !r.userTouched,
+      supplierCellBg: confirmed ? "oklch(94% 0.045 150)" : "transparent",
+      // Free-text flag (§ requirement 7) — explicit per-row flags set by
+      // selectFreeTextSupplier/selectFreeTextItem, not inferred from a supplierMaster
+      // lookup miss (keeps working correctly across re-renders/export/persisted sessions).
+      isFreeTextSupplier: !!r.freeTextSupplier,
+      isFreeTextItem: !!r.freeTextItem || !!(selectedItem && selectedItem.isFreeText),
+      // Shown on the confirm button — must read as the supplier's own item name (matches what
+      // the OCR text and the picker list already show), not the internal RVN catalog name,
+      // so the reviewer can visually confirm the match against the invoice at a glance.
+      itemButtonLabel: selectedItem ? selectedItem.supplierItemName : "เลือก item...",
+      onOpenSupplier: () => openCellAt(r.id, "supplier"),
+      onOpenItem: () => openCellAt(r.id, "item"),
+      compareFields, extraCompareFields,
+      ocrDiffRuns, modelDiffRuns,
+      isExpanded: !!expandedRows[r.id],
+      chevronStyle: expandedRows[r.id] ? "transform:rotate(90deg)" : "",
+      onToggleExpand: () => toggleExpand(r.id),
+    };
+  });
+
+  // Column filters (§ requirement 1) — distinct-value checkboxes computed from the full
+  // unfiltered displayRows (a deliberate scope cut: filters don't cascade against each
+  // other's current selection, unlike real Excel — simpler and still very usable).
+  function distinctValuesFor(field) {
+    const set = new Set();
+    displayRows.forEach(r => set.add(String(r[field] ?? "")));
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }
+  // Opens field's filter popover, seeding the draft from the currently-applied filter (or "all
+  // checked" if unfiltered). Closing without OK (Cancel, Escape, click-outside) just discards
+  // this draft — columnFilters is only ever written by commitFilterDraft.
+  //
+  // Position is computed here from the filter button's own getBoundingClientRect(), and the
+  // popover itself renders with position:"fixed" using those viewport coordinates — NOT
+  // position:"absolute" anchored via the <th>'s position:"relative". Anchoring to the <th> was
+  // the original approach and looked correct in every local test, but real users on real
+  // browsers kept reporting the popover randomly rendering huge/empty/cut-off — a table cell is
+  // not a reliable containing block for an absolutely-positioned descendant across every browser
+  // engine (some fall back to the <table> or the scrolling wrapper as the containing block
+  // instead), and that ambiguity is a plausible explanation for symptoms that never reproduced
+  // in this sandbox's Playwright/Chromium but kept recurring live. getBoundingClientRect() +
+  // position:fixed is viewport-relative and sidesteps the whole class of bug. Do not go back to
+  // th-relative absolute positioning for this popover.
+  function openFilterPopover(field, btnEl) {
+    const allValues = distinctValuesFor(field);
+    const current = columnFilters[field];
+    setDraftFilterValues(current ? new Set(current) : new Set(allValues));
+    setFilterSearchQuery("");
+    if (btnEl) {
+      const rect = btnEl.getBoundingClientRect();
+      const width = 230;
+      let left = Math.min(rect.left, window.innerWidth - width - 10);
+      left = Math.max(10, left);
+      let top = rect.bottom + 4;
+      if (top + 320 > window.innerHeight) {
+        // Not enough room below — open upward instead of running off the bottom edge.
+        top = Math.max(10, rect.top - 320 - 4);
+      }
+      setFilterPopoverPos({ top, left });
+    }
+    setOpenFilterCol(field);
+  }
+  function closeFilterPopover() {
+    setOpenFilterCol(null);
+    setDraftFilterValues(null);
+  }
+  // Commits the draft into columnFilters: "all checked" (including an empty distinct-value
+  // list) is stored as no entry at all (unfiltered); anything else — including a fully empty
+  // draft, i.e. every value unchecked, which legitimately means "show zero rows" — is stored
+  // as an explicit Set. A field key's mere presence in columnFilters is what "filtered" means;
+  // do not go back to keying that off `.size > 0`, that can't represent "show nothing".
+  function commitFilterDraft(field, allValues) {
+    setColumnFilters(cf => {
+      const next = { ...cf };
+      if (draftFilterValues && draftFilterValues.size < allValues.length) next[field] = new Set(draftFilterValues);
+      else delete next[field];
+      return next;
+    });
+    closeFilterPopover();
+  }
+  function toggleDraftValue(value) {
+    setDraftFilterValues(draft => {
+      const next = new Set(draft);
+      if (next.has(value)) next.delete(value); else next.add(value);
+      return next;
+    });
+  }
+  function renderSortableTh(field, label, width) {
+    const isSorted = columnSort.field === field;
+    const sortIconColor = isSorted ? "var(--color-accent-700)" : "currentColor";
+    const hasFilter = !!columnFilters[field];
+    const isOpen = openFilterCol === field;
+    const allValues = isOpen ? distinctValuesFor(field) : [];
+    const q2 = filterSearchQuery.toLowerCase();
+    const visibleValues = q2 ? allValues.filter(v => v.toLowerCase().includes(q2)) : allValues;
+    const draft = draftFilterValues || new Set();
+    // Tri-state (Select All): checked only when every distinct value is currently in the draft;
+    // clicking it toggles between "everything checked" and "everything unchecked", matching the
+    // real Excel behavior in the user's reference screenshot (not a one-way "reset" action).
+    const allChecked = allValues.length > 0 && allValues.every(v => draft.has(v));
+    return (
+      <th key={field} style={{ width, position: "sticky", top: 0, zIndex: 20, background: "var(--color-bg)" }}>
+        <span
+          style={{ cursor: "pointer", userSelect: "none" }}
+          onClick={() => setColumnSort(s => ({
+            field,
+            dir: s.field === field && s.dir === "asc" ? "desc" : (s.field === field && s.dir === "desc" ? null : "asc"),
+          }))}
+        >
+          {label}{" "}
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={sortIconColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-1px" }}><path d="m21 16-4 4-4-4"></path><path d="M17 20V4"></path><path d="m3 8 4-4 4 4"></path><path d="M7 4v16"></path></svg>
+        </span>
+        <button
+          title="กรอง"
+          onClick={e => { e.stopPropagation(); if (isOpen) closeFilterPopover(); else openFilterPopover(field, e.currentTarget); }}
+          style={{ border: "none", background: "none", cursor: "pointer", padding: "0 0 0 5px", verticalAlign: "-2px", color: hasFilter ? "var(--color-accent-700)" : "color-mix(in srgb, var(--color-text) 45%, transparent)" }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill={hasFilter ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 4 21 4 14 12 14 19 10 21 10 12 3 4"></polygon></svg>
+        </button>
+        {isOpen && ReactDOM.createPortal(
+          <div
+            className="dialog"
+            // Every sub-section below has a literal fixed pixel height (search 28, select-all
+            // 24, list exactly 180, actions 26) instead of relying on flexbox to distribute
+            // space — the previous flex:"1 1 auto"/minHeight:0 approach still let the box's
+            // rendered size vary with content in some layouts. `display:"block"` overrides the
+            // `.dialog` class's `display:flex` for this specific popover so none of this is
+            // flex-computed at all. Total content height (28+24+180+26 + 3×6 gaps via margin =
+            // 276) plus 20px padding (10 top+bottom) = 296, comfortably under the outer
+            // `height:320` — if any of these fixed numbers change, keep the sum under 320 or
+            // raise it to match.
+            //
+            // position:"fixed" with top/left from filterPopoverPos (computed via
+            // getBoundingClientRect() on the filter button in openFilterPopover), NOT
+            // position:"absolute" anchored to the <th> via position:"relative". A table cell is
+            // not a reliable containing block for an absolutely-positioned descendant across
+            // every browser engine — that ambiguity is the likely explanation for the popover
+            // intermittently rendering at the wrong size/position on real user browsers despite
+            // this exact box always measuring correctly in local testing. Do not revert to
+            // th-relative absolute positioning here.
+            //
+            // Rendered via ReactDOM.createPortal into document.body — NOT as a normal in-place
+            // child of the <th> — because the <th> is position:"sticky" with its own z-index (for
+            // the sticky table header, see the wrapper div above), which makes it establish its
+            // own stacking context. A position:"fixed" descendant still computes its on-screen
+            // position relative to the viewport, but it does NOT escape that ancestor's stacking
+            // context for paint/click order — so without the portal, this popover's zIndex:45
+            // only wins against other elements *inside* that <th>'s subtree, and the unrelated
+            // full-page click-outside backdrop (zIndex:44, rendered near the bottom of the page)
+            // was found (via Playwright) to paint above it and silently swallow every click on
+            // Cancel/OK/the checkboxes. The portal renders this popover as a true top-level
+            // sibling of that backdrop in the DOM, so plain z-index comparison (45 > 44) works
+            // as expected again. Do not go back to an in-place (non-portal) render once the <th>
+            // is sticky/z-indexed.
+            style={{ position: "fixed", top: filterPopoverPos.top, left: filterPopoverPos.left, zIndex: 45, width: 230, height: 320, overflow: "hidden", padding: 10, display: "block", fontWeight: 400, textTransform: "none", letterSpacing: "normal" }}
+            onClick={e => e.stopPropagation()}
+          >
+            <input className="input" style={{ fontSize: 12, padding: "4px 8px", height: 28, boxSizing: "border-box" }} placeholder="ค้นหาค่า..." value={filterSearchQuery} onChange={e => setFilterSearchQuery(e.target.value)} onKeyDown={e => { if (e.key === "Escape") closeFilterPopover(); }} autoFocus />
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, height: 24, marginTop: 6, padding: "2px", borderBottom: "1px solid var(--color-divider)", cursor: "pointer", boxSizing: "border-box" }}>
+              <input
+                type="checkbox"
+                checked={allChecked}
+                onChange={() => setDraftFilterValues(allChecked ? new Set() : new Set(allValues))}
+              />
+              (เลือกทั้งหมด)
+            </label>
+            <div style={{ overflowY: "auto", overflowX: "hidden", height: 180, marginTop: 6 }}>
+              {visibleValues.map(v => (
+                <label key={v || "(blank)"} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, padding: "3px 2px", cursor: "pointer" }}>
+                  <input type="checkbox" checked={draft.has(v)} onChange={() => toggleDraftValue(v)} />
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v || "(ว่าง)"}</span>
+                </label>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, height: 26, marginTop: 6 }}>
+              <button className="btn btn-secondary" style={{ fontSize: 11, padding: "3px 10px" }} onClick={closeFilterPopover}>Cancel</button>
+              <button className="btn btn-primary" style={{ fontSize: 11, padding: "3px 10px" }} onClick={() => commitFilterDraft(field, allValues)}>OK</button>
+            </div>
+          </div>,
+          document.body
+        )}
+      </th>
+    );
+  }
+  let sortedRows = displayRows;
+  Object.keys(columnFilters).forEach(field => {
+    // A field's mere presence in columnFilters means "filtered" — including an explicit empty
+    // Set, which legitimately means "show zero rows" (every checkbox unchecked + OK). Do not
+    // add back a `.size > 0` guard here, see commitFilterDraft's comment.
+    const allowed = columnFilters[field];
+    sortedRows = sortedRows.filter(r => allowed.has(String(r[field] ?? "")));
+  });
+  if (showOnlyReview) sortedRows = sortedRows.filter(r => r.confLabel === "ต้องตรวจ");
+  if (columnSort.field) {
+    const field = columnSort.field;
+    const dir = columnSort.dir;
+    const col = SORTABLE_COLUMNS.find(c => c.field === field);
+    const isNumeric = col && col.type === "number";
+    sortedRows = [...sortedRows].sort((a, b) => {
+      if (isNumeric) {
+        const av = Number(a[field]) || 0, bv = Number(b[field]) || 0;
+        return dir === "asc" ? av - bv : bv - av;
+      }
+      const av = String(a[field] ?? ""), bv = String(b[field] ?? "");
+      return dir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
+  }
+
+  const stats = {
+    total: effectiveRows.length,
+    exact: effectiveRows.filter(r => r.matchType === "Exact").length,
+    fuzzy: effectiveRows.filter(r => r.matchType === "Fuzzy").length,
+    pass: displayRows.filter(r => r.confLabel === "ผ่าน").length,
+    needsReview: displayRows.filter(r => r.confLabel === "ต้องตรวจ").length,
+    missingOcr: effectiveRows.filter(r => !r.ocrItemCode).length,
+    confirmed: displayRows.filter(r => r.confirmed).length,
+  };
+  stats.pending = stats.total - stats.confirmed;
+  const unconfirmedReview = displayRows.filter(r => r.confLabel === "ต้องตรวจ" && !r.confirmed).length;
+  // Export is no longer gated on every row being confirmed (reversed decision — see
+  // CLAUDE.md) — unconfirmedReview now only drives a non-blocking warning in the confirm
+  // dialog, not a hard block.
+  const exportDisabled = stats.total === 0;
+  const bulkDisabled = stats.pass === 0;
+  const freeTextRows = displayRows.filter(r => r.isFreeTextSupplier || r.isFreeTextItem);
+  const freeTextExportDisabled = freeTextRows.length === 0;
+  function exportFreeTextRows() {
+    const wb = buildFreeTextExportWorkbook(freeTextRows);
+    XLSX.writeFile(wb, `Item_Mapping_FreeText_${formatFileTimestamp(new Date())}.xlsx`);
+  }
+
+  let dialogOptions = [];
+  let dialogTitle = "";
+  let dialogCurrentLabel = "";
+  let dialogFreeTextOption = null;
+  if (openCell) {
+    const activeRow = displayRows.find(r => r.id === openCell.rowId);
+    if (openCell.type === "supplier") {
+      dialogTitle = "เลือก Supplier";
+      dialogCurrentLabel = activeRow && activeRow.selectedSupplier ? activeRow.selectedSupplier : "";
+      const recentOptions = !q
+        ? recentSuppliers
+            .filter(name => !!supplierMaster[name])
+            .map(name => ({ key: "recent-" + name, label: name, sub: "", isRecent: true, selected: name === dialogCurrentLabel, onSelect: () => selectSupplier(openCell.rowId, name) }))
+        : [];
+      const mainOptions = Object.keys(supplierMaster)
+        .filter(name => !q || name.toLowerCase().includes(q))
+        .map(name => ({ key: name, label: name, sub: "", selected: name === dialogCurrentLabel, onSelect: () => selectSupplier(openCell.rowId, name) }));
+      dialogOptions = recentOptions.concat(mainOptions);
+      if (q.trim() && !mainOptions.some(o => o.label.toLowerCase() === q)) {
+        dialogFreeTextOption = { key: "freetext", label: `ใช้ "${searchQuery.trim()}" (พิมพ์เอง)`, isFreeText: true, onSelect: () => selectFreeTextSupplier(openCell.rowId, searchQuery.trim()) };
+      }
+    } else if (activeRow) {
+      dialogTitle = "เลือก Item";
+      dialogCurrentLabel = activeRow.selectedItem ? activeRow.selectedItem.supplierItemName : "";
+      const pool = supplierMaster[activeRow.selectedSupplier] || [];
+      const poolKey = it => (it.supplierItemCode || "") + "||" + it.supplierItemName;
+      const poolKeys = new Set(pool.map(poolKey));
+      const recentOptions = !q
+        ? recentItems
+            .filter(it => poolKeys.has(poolKey(it)))
+            .map((it, idx) => ({ key: "recent-" + poolKey(it), label: it.supplierItemName, sub: "", isRecent: true, selected: !!activeRow.selectedItem && it.supplierItemName === activeRow.selectedItem.supplierItemName && it.supplierItemCode === activeRow.selectedItem.supplierItemCode, onSelect: () => selectItem(openCell.rowId, it) }))
+        : [];
+      const mainOptions = pool
+        .filter(it => !q || (it.supplierItemCode + it.supplierItemName).toLowerCase().includes(q))
+        .map((it, idx) => ({
+          key: (it.supplierItemCode || "noCode") + "-" + idx,
+          label: it.supplierItemName,
+          sub: "",
+          selected: !!activeRow.selectedItem && it.supplierItemName === activeRow.selectedItem.supplierItemName && it.supplierItemCode === activeRow.selectedItem.supplierItemCode,
+          onSelect: () => selectItem(openCell.rowId, it),
+        }));
+      dialogOptions = recentOptions.concat(mainOptions);
+      if (q.trim() && !mainOptions.some(o => o.label.toLowerCase() === q)) {
+        dialogFreeTextOption = { key: "freetext", label: `ใช้ "${searchQuery.trim()}" (พิมพ์เอง)`, isFreeText: true, onSelect: () => selectFreeTextItem(openCell.rowId, searchQuery.trim()) };
+      }
+    }
+  }
+  // A separate always-visible "add new" footer button was tried here and removed (§ fix,
+  // 2nd round) — with search text entered it duplicated this same in-list free-text option
+  // (two buttons doing the same thing, confirmed redundant by the user), and with no search
+  // text it did nothing useful. The in-list option below is now the one and only "add your
+  // own" affordance — kept discoverable by giving it a solid, distinctly-colored "proper box"
+  // treatment (not just a dashed border blending into the regular option rows) once the user
+  // types something with no match, rather than being always-visible.
+  // Keyboard nav (§ requirement 3) walks this combined, flat, selectable list — free-text
+  // (when present) is always the last stop so Enter on it creates the free-text entry.
+  const dialogAllOptions = dialogFreeTextOption ? dialogOptions.concat([dialogFreeTextOption]) : dialogOptions;
+
+  const isError = !isLoading && hasError;
+  const isEmpty = !isLoading && !hasError && stats.total === 0;
+  const showTable = !isLoading && !hasError && stats.total > 0;
+  const filterBtnClass = showOnlyReview ? "btn-primary" : "btn-secondary";
+  const exportTooltip = exportDisabled ? "ไม่มีข้อมูลให้ส่งออก" : "";
+  const bulkTooltip = bulkDisabled ? "ไม่มีแถวที่ผ่านเกณฑ์ให้ยืนยัน" : "";
+
+  return (
+    <div style={{ height: "100vh", display: "flex", flexDirection: "column", background: "var(--color-bg)", color: "var(--color-text)", fontFamily: "var(--font-body)" }}>
+      {/* Header padding/font-sizes intentionally compact (not the original 28px/42px h1) — on a
+          short browser window the table box below only gets whatever vertical space this header
+          doesn't use (see the flex-fill comment on the table wrapper), so a tall header directly
+          means fewer visible rows before the user has to scroll. Real complaint from the user on
+          their actual laptop screen: only ~4 rows visible. Don't re-expand this header back to
+          the old spacious sizing without re-checking how many rows that leaves visible on a
+          short window. */}
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 24, padding: "14px 40px", borderBottom: "1px solid var(--color-divider)", flexShrink: 0 }}>
+        <div>
+          <div style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-accent-700)", fontFamily: "var(--font-body)" }}>PO–Invoice–DO Mapping · RVN 1020</div>
+          <h1 style={{ marginTop: 2, marginBottom: 0, fontSize: 22, fontFamily: "var(--font-body)" }}>Invoice data Validation</h1>
+          <div style={{ fontSize: 12, marginTop: 2, color: "color-mix(in srgb, var(--color-text) 55%, transparent)" }}>
+            Supplier Master:{" "}
+            {supplierMasterSource === "file" && "โหลดจากไฟล์ล่าสุดในโฟลเดอร์"}
+            {supplierMasterSource === "built-in" && "ข้อมูลเริ่มต้นในแอป (อาจไม่ใช่ข้อมูลล่าสุด)"}
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "none" }}>
+          <input ref={importInputRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={handleImportFile} />
+          <button className="btn btn-secondary" style={{ flex: "none", whiteSpace: "nowrap" }} onClick={triggerImport}>
+            นำเข้าไฟล์ Excel
+          </button>
+          <span title={exportTooltip}>
+            <button className="btn btn-primary" style={{ flex: "none", whiteSpace: "nowrap", opacity: exportDisabled ? 0.45 : 1 }} disabled={exportDisabled} onClick={() => { if (!exportDisabled) setShowExportConfirm(true); }}>
+              เสร็จสิ้นและส่งออกข้อมูล
+            </button>
+          </span>
+          <span title={freeTextExportDisabled ? "ไม่มีแถวที่พิมพ์เอง" : ""}>
+            <button
+              className="btn btn-secondary"
+              style={{ flex: "none", whiteSpace: "nowrap", opacity: freeTextExportDisabled ? 0.45 : 1, border: "1px dashed var(--color-accent-700)", color: "var(--color-accent-700)" }}
+              disabled={freeTextExportDisabled}
+              onClick={() => { if (!freeTextExportDisabled) exportFreeTextRows(); }}
+            >
+              ส่งออกเฉพาะรายการที่พิมพ์เอง ({freeTextRows.length})
+            </button>
+          </span>
+        </div>
+      </div>
+
+      {importError && (
+        <div style={{ margin: "16px 40px 0", padding: "10px 14px", borderRadius: "var(--radius-md)", border: "1px solid oklch(58% 0.15 25)", background: "color-mix(in srgb, oklch(58% 0.15 25) 10%, transparent)", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexShrink: 0 }}>
+          <span>{importError}</span>
+          <button className="btn btn-ghost" style={{ fontSize: 12, padding: "2px 8px" }} onClick={() => setImportError("")}>ปิด</button>
+        </div>
+      )}
+
+      {isLoading && (
+        <div style={{ padding: "24px 40px 56px" }}>
+          <div style={{ display: "flex", gap: 16, marginBottom: 18 }}>
+            <div className="imv-skel" style={{ width: 160, height: 16 }}></div>
+            <div className="imv-skel" style={{ width: 160, height: 16 }}></div>
+            <div className="imv-skel" style={{ width: 160, height: 16 }}></div>
+          </div>
+          <div style={{ border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+            {[1, 2, 3, 4, 5, 6].map(sk => (
+              <div key={sk} className="imv-skel" style={{ width: "100%", height: 36 }}></div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {isError && (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, padding: "100px 24px", textAlign: "center" }}>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="oklch(45% 0.14 25)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          <div style={{ fontSize: 16 }}>ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง</div>
+          <button className="btn btn-secondary" onClick={retryLoad}>ลองใหม่</button>
+        </div>
+      )}
+
+      {isEmpty && (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, padding: "100px 24px", textAlign: "center", color: "color-mix(in srgb, var(--color-text) 55%, transparent)" }}>
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11H3v10h18V11h-6"></path><path d="M12 3v13"></path><path d="m8 8 4-5 4 5"></path></svg>
+          <div style={{ fontSize: 15 }}>ไม่มีรายการที่ต้องตรวจสอบในขณะนี้</div>
+        </div>
+      )}
+
+      {showTable && (
+        // display:flex/flexDirection:column + flex:1/minHeight:0 lets this block fill exactly
+        // the viewport space left over below the header (whatever that header's actual height
+        // turns out to be — it varies with word-wrap, the optional error banner, etc., so a
+        // static "100vh minus a guessed number of pixels" doesn't track it reliably). The stats
+        // row and controls row below keep their natural size (flexShrink:0); the table wrapper
+        // is the one flexed child that absorbs all remaining height with its own overflowY.
+        <div style={{ padding: "12px 40px 16px", display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap", marginBottom: 10, paddingBottom: 10, borderBottom: "1px solid var(--color-divider)", flexShrink: 0 }}>
+            <div style={{ fontSize: 13 }}><span style={{ color: "color-mix(in srgb, var(--color-text) 55%, transparent)" }}>ทั้งหมด :</span> <strong style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600 }}>{stats.total}</strong></div>
+            <div style={{ fontSize: 13 }}><span style={{ color: "color-mix(in srgb, var(--color-text) 55%, transparent)" }}>ยืนยันแล้ว :</span> <strong style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--color-neutral-900)", fontWeight: 600 }}>{stats.confirmed}</strong></div>
+            <div style={{ fontSize: 13 }}><span style={{ color: "color-mix(in srgb, var(--color-text) 55%, transparent)" }}>Exact / Fuzzy :</span> <strong style={{ fontFamily: "var(--font-body)", fontSize: 13, fontWeight: 600 }}>{stats.exact} / {stats.fuzzy}</strong></div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 10, flexWrap: "wrap", flexShrink: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "color-mix(in srgb, var(--color-text) 60%, transparent)" }}>
+              <span style={{ width: 9, height: 9, borderRadius: "50%", background: "oklch(55% 0.11 150)" }}></span>ผ่าน
+              <span style={{ width: 9, height: 9, borderRadius: "50%", background: "oklch(58% 0.15 25)", marginLeft: 10 }}></span>ต้องตรวจ/แก้ไข
+            </div>
+            <button className={`btn ${filterBtnClass}`} style={{ fontSize: 12, padding: "6px 12px" }} onClick={() => setShowOnlyReview(v => !v)}>แสดงเฉพาะที่ต้องตรวจ</button>
+            <span title={bulkTooltip}>
+              <button className="btn btn-primary" style={{ fontSize: 12, padding: "6px 12px", whiteSpace: "nowrap", opacity: bulkDisabled ? 0.45 : 1 }} disabled={bulkDisabled} onClick={() => { if (!bulkDisabled) bulkConfirmPassed(); }}>ยืนยันทั้งหมดที่ผ่านเกณฑ์ ({stats.pass})</button>
+            </span>
+            <div style={{ marginLeft: "auto", fontSize: 13, color: "color-mix(in srgb, var(--color-text) 60%, transparent)" }}>ยืนยันแล้ว {stats.confirmed} / {stats.total}</div>
+          </div>
+
+          <div
+            ref={tableScrollRef}
+            // flex:1 + minHeight:0 (relying on the flex-column chain set up on the ancestor
+            // divs above — see the comment on the {showTable && (...)} wrapper) + overflowY:
+            // "auto" (instead of the old unbounded "visible") turns this div into its own scroll
+            // container sized to exactly whatever viewport space is actually left, however tall
+            // the header/stats/controls rows above happen to be. Both its scrollbars — including
+            // the horizontal one — then sit at this box's own edges, always in view, instead of
+            // at the bottom of a page that can run to 500+ rows tall. Without this, reaching the
+            // horizontal scrollbar required scrolling the whole page down past every row first —
+            // a real usability complaint from the user, not a nice-to-have. (A static maxHeight:
+            // "calc(100vh - Npx)" was tried first and rejected — the guessed N pixels didn't
+            // hold once the header wrapped to more lines on a narrow window, so the box still
+            // ran off the bottom of the viewport on the user's actual screen size. Flexing off
+            // the real ancestor chain instead of guessing a pixel offset is the fix, don't go
+            // back to a maxHeight calc() here.) (Separately — an even earlier, different fix for
+            // horizontal-scroll reachability, a "phantom" scrollbar fixed to the bottom of the
+            // viewport and synced to the real one, was tried and fully reverted at the user's
+            // request as "hard to notice"; do not reintroduce that either. This flex-fill
+            // approach makes the *real* scrollbar itself reachable, rather than adding a second
+            // one.)
+            //
+            // minHeight:500 (not 0) — even after compacting the header (§9e), a real user on a
+            // short browser window still saw only ~3 rows before the flex-fill math ran out of
+            // space, and reported it as still too cramped. A pure "flex:1, minHeight:0" fill has
+            // no floor: it will happily shrink the table to near-nothing if the window is short
+            // enough. 500px guarantees a usable number of rows always; on windows too short to
+            // fit header + 500px table, the *page* (not this box) now scrolls a little to reach
+            // the rest — bounded to roughly one header's worth of scrolling, nothing like the
+            // pre-fix problem of scrolling past 500+ rows. Don't drop this back to minHeight:0.
+            style={{ overflowX: "auto", overflowY: "auto", flex: 1, minHeight: 500, border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)", position: "relative", background: "var(--color-bg)" }}
+          >
+            <table className="table" style={{ minWidth: 1790, tableLayout: "fixed", borderCollapse: "separate", borderSpacing: 0 }}>
+              <thead>
+                <tr>
+                  <th style={{ width: 40, position: "sticky", top: 0, zIndex: 20, background: "var(--color-bg)" }}></th>
+                  {SORTABLE_COLUMNS.map(c => renderSortableTh(c.field, c.label, c.width))}
+                  <th style={{ width: 220, position: "sticky", top: 0, zIndex: 20, background: "var(--color-bg)" }}>เลือก Supplier</th>
+                  <th style={{ width: 280, position: "sticky", top: 0, zIndex: 20, background: "var(--color-bg)" }}>เลือก Item</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedRows.map(row => (
+                  <React.Fragment key={row.id}>
+                    <tr>
+                      <td>
+                        <button onClick={row.onToggleExpand} style={{ border: "none", background: "none", cursor: "pointer", padding: 4, display: "flex", color: "color-mix(in srgb, var(--color-text) 55%, transparent)" }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={styleObj(row.chevronStyle)}><polyline points="9 18 15 12 9 6"></polyline></svg>
+                        </button>
+                      </td>
+                      <td>{row.invoiceNo}</td>
+                      <td style={{ background: row.supplierCellBg }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          {row.isUserConfirmed && (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="oklch(38% 0.1 150)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 17.01"></polyline></svg>
+                          )}
+                          {row.isAutoFilled && (
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="color-mix(in srgb, var(--color-text) 40%, transparent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 3"></path></svg>
+                          )}
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={row.supplierNameOcr}>{row.supplierNameOcr}</span>
+                        </div>
+                        {row.isUserConfirmed && <div style={{ fontSize: 10, color: "oklch(38% 0.1 150)", marginTop: 4 }}>ยืนยันแล้ว</div>}
+                        {row.isAutoFilled && <div style={{ fontSize: 10, color: "color-mix(in srgb, var(--color-text) 45%, transparent)", marginTop: 4 }}>ระบบเลือกให้</div>}
+                      </td>
+                      <td>
+                        {row.ocrMissing && (
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "oklch(45% 0.14 25)", fontSize: 12 }}>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            ไม่พบข้อมูล
+                          </span>
+                        )}
+                        {row.ocrHasCode && <span>{row.ocrItemCode}</span>}
+                      </td>
+                      <td style={{ whiteSpace: "normal", wordBreak: "break-word" }}>{row.ocrDiffRuns.map((run, i) => <span key={i} style={styleObj(run.style)}>{run.text}</span>)}</td>
+                      <td><span className={row.matchTypeTagClass} style={{ display: "inline-flex", padding: "3px 10px", borderRadius: 3, fontSize: 11 }}>{row.matchType}</span></td>
+                      <td style={{ whiteSpace: "normal", wordBreak: "break-word" }}>{row.modelDiffRuns.map((run, i) => <span key={i} style={styleObj(run.style)}>{run.text}</span>)}</td>
+                      <td>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: row.confBg, color: row.confText, padding: "4px 10px", borderRadius: 12, fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+                          <span style={{ width: 7, height: 7, borderRadius: "50%", background: row.confDot }}></span>
+                          {row.confidence}% · {row.confLabel}
+                        </span>
+                      </td>
+                      <td style={{ background: row.isFreeTextSupplier ? "var(--color-accent-100)" : undefined }}>
+                        <button className="btn btn-secondary" style={{ width: "100%", justifyContent: "space-between", fontFamily: "var(--font-body)", fontWeight: 400, fontSize: 13, border: row.isFreeTextSupplier ? "1px dashed var(--color-accent-700)" : undefined }} onClick={row.onOpenSupplier}>
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.selectedSupplier}</span>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                        {row.isFreeTextSupplier && <div style={{ fontSize: 10, color: "var(--color-accent-700)", marginTop: 4 }}>✎ พิมพ์เอง (ไม่มีในระบบ)</div>}
+                      </td>
+                      <td style={{ background: row.isFreeTextItem ? "var(--color-accent-100)" : undefined }}>
+                        <button className="btn btn-secondary" style={{ width: "100%", justifyContent: "space-between", fontFamily: "var(--font-body)", fontWeight: 400, fontSize: 13, border: row.isFreeTextItem ? "1px dashed var(--color-accent-700)" : undefined }} onClick={row.onOpenItem}>
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.itemButtonLabel}</span>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none" }}><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                        {row.isFreeTextItem && <div style={{ fontSize: 10, color: "var(--color-accent-700)", marginTop: 4 }}>✎ พิมพ์เอง (ไม่มีในระบบ)</div>}
+                      </td>
+                    </tr>
+                    {row.isExpanded && (
+                      <tr>
+                        <td colSpan={10} style={{ background: "color-mix(in srgb, var(--color-text) 4%, var(--color-bg))", borderTop: "1px dashed var(--color-divider)", borderBottom: "1px solid var(--color-divider)", padding: "18px 24px", position: "relative", zIndex: 0 }}>
+                          <div style={{ fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", color: "color-mix(in srgb, var(--color-text) 55%, transparent)", marginBottom: 10 }}>Invoice Reference</div>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
+                            {row.compareFields.map((cf, i) => (
+                              <div key={i} style={{ border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)", padding: "10px 12px", background: "var(--color-bg)", position: "relative", zIndex: 1 }}>
+                                <div style={{ fontSize: 11, color: "color-mix(in srgb, var(--color-text) 55%, transparent)", marginBottom: 6 }}>{cf.label}</div>
+                                <div style={{ fontSize: 13, fontVariantNumeric: "tabular-nums", display: "flex", alignItems: "center", gap: 5, minHeight: 20 }}>
+                                  {cf.invField.isEditing ? (
+                                    <input className="input" style={{ padding: "2px 6px", minHeight: "auto", fontSize: 13, width: 100, background: "var(--color-bg)" }} value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") commitEditField(); if (e.key === "Escape") cancelEditField(); }} onBlur={commitEditField} autoFocus />
+                                  ) : (
+                                    <span style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, ...styleObj(cf.invField.underline) }} onClick={cf.invField.onStart} onMouseEnter={cf.invField.onHoverIn} onMouseLeave={cf.invField.onHoverOut}>
+                                      <span style={!cf.invField.value ? { fontStyle: "italic", color: "color-mix(in srgb, var(--color-text) 45%, transparent)" } : undefined}>{cf.invField.value || "ไม่ทราบค่า"}</span>
+                                      {cf.invField.isEdited && (
+                                        <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--color-accent-700)", flex: "none" }}></span>
+                                      )}
+                                      {cf.invField.showPencil && (
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="color-mix(in srgb, var(--color-text) 45%, transparent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {row.extraCompareFields.length > 0 && (
+                            <React.Fragment>
+                              <div style={{ fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", color: "color-mix(in srgb, var(--color-text) 55%, transparent)", margin: "14px 0 10px" }}>ข้อมูลเพิ่มเติมจาก Invoice</div>
+                              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
+                                {row.extraCompareFields.map((ef, i) => (
+                                  <div key={i} style={{ border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)", padding: "10px 12px", background: "var(--color-bg)", position: "relative", zIndex: 1 }}>
+                                    <div style={{ fontSize: 11, color: "color-mix(in srgb, var(--color-text) 55%, transparent)", marginBottom: 6 }}>{ef.label}</div>
+                                    <div style={{ fontSize: 13, fontVariantNumeric: "tabular-nums", display: "flex", alignItems: "center", gap: 5, minHeight: 20 }}>
+                                      {ef.invField.isEditing ? (
+                                        <input className="input" style={{ padding: "2px 6px", minHeight: "auto", fontSize: 13, width: 100, background: "var(--color-bg)" }} value={editValue} onChange={e => setEditValue(e.target.value)} onKeyDown={e => { if (e.key === "Enter") commitEditField(); if (e.key === "Escape") cancelEditField(); }} onBlur={commitEditField} autoFocus />
+                                      ) : (
+                                        <span style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, ...styleObj(ef.invField.underline) }} onClick={ef.invField.onStart} onMouseEnter={ef.invField.onHoverIn} onMouseLeave={ef.invField.onHoverOut}>
+                                          <span>{ef.invField.value}</span>
+                                          {ef.invField.isEdited && (
+                                            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--color-accent-700)", flex: "none" }}></span>
+                                          )}
+                                          {ef.invField.showPencil && (
+                                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="color-mix(in srgb, var(--color-text) 45%, transparent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>
+                                          )}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </React.Fragment>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {!!openFilterCol && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 44 }} onClick={closeFilterPopover}></div>
+      )}
+
+      {!!openCell && (
+        <div className="dialog-backdrop" onClick={closeDropdown} style={{ zIndex: 50 }}>
+          <div
+            className="dialog"
+            onClick={e => e.stopPropagation()}
+            style={{ maxHeight: "70vh", transform: dialogPos ? `translate(${dialogPos.x}px, ${dialogPos.y}px)` : undefined }}
+          >
+            <div
+              className="dialog-title"
+              style={{ cursor: "grab", userSelect: "none" }}
+              onMouseDown={e => {
+                e.preventDefault();
+                const start = { x: e.clientX, y: e.clientY, base: dialogPos || { x: 0, y: 0 } };
+                dragStateRef.current = start;
+                const onMove = ev => {
+                  setDialogPos({ x: start.base.x + (ev.clientX - start.x), y: start.base.y + (ev.clientY - start.y) });
+                };
+                const onUp = () => {
+                  document.removeEventListener("mousemove", onMove);
+                  document.removeEventListener("mouseup", onUp);
+                };
+                document.addEventListener("mousemove", onMove);
+                document.addEventListener("mouseup", onUp);
+              }}
+            >
+              {dialogTitle}
+            </div>
+            {dialogCurrentLabel && (
+              <div style={{ fontSize: 13, padding: "6px 10px", background: "color-mix(in srgb, var(--color-accent-700) 10%, transparent)", borderRadius: "var(--radius-md)" }}>
+                <span style={{ color: "color-mix(in srgb, var(--color-text) 55%, transparent)" }}>ตอนนี้เลือก :</span> <strong>{dialogCurrentLabel}</strong>
+              </div>
+            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", border: "1px solid var(--color-divider)", borderRadius: "var(--radius-md)" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6, flex: "none" }}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input
+                className="input"
+                style={{ border: "none", padding: 0, minHeight: "auto" }}
+                placeholder="พิมพ์เพื่อค้นหา..."
+                value={searchQuery}
+                onChange={e => { setSearchQuery(e.target.value); setHighlightIndex(0); }}
+                onKeyDown={e => {
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setHighlightIndex(i => {
+                      const next = Math.min(i + 1, dialogAllOptions.length - 1);
+                      const el = optionRefs.current[dialogAllOptions[next] && dialogAllOptions[next].key];
+                      if (el) el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                      return next;
+                    });
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setHighlightIndex(i => {
+                      const next = Math.max(i - 1, 0);
+                      const el = optionRefs.current[dialogAllOptions[next] && dialogAllOptions[next].key];
+                      if (el) el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                      return next;
+                    });
+                  } else if (e.key === "Enter") {
+                    e.preventDefault();
+                    const opt = dialogAllOptions[highlightIndex];
+                    if (opt) opt.onSelect();
+                  } else if (e.key === "Escape") {
+                    closeDropdown();
+                  }
+                }}
+                autoFocus
+              />
+            </div>
+            <div style={{ overflow: "auto", maxHeight: 320, display: "flex", flexDirection: "column", gap: 2 }}>
+              {dialogAllOptions.length === 0 && (
+                <div style={{ padding: "14px 8px", fontSize: 13, color: "color-mix(in srgb, var(--color-text) 55%, transparent)" }}>ไม่พบรายการที่ตรงกัน</div>
+              )}
+              {dialogAllOptions.map((opt, idx) => (
+                <React.Fragment key={opt.key}>
+                  {idx === 0 && opt.isRecent && (
+                    <div style={{ fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", color: "color-mix(in srgb, var(--color-text) 55%, transparent)", padding: "2px 8px" }}>ล่าสุด</div>
+                  )}
+                  {idx > 0 && dialogAllOptions[idx - 1].isRecent && !opt.isRecent && (
+                    <div style={{ fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", color: "color-mix(in srgb, var(--color-text) 55%, transparent)", padding: "6px 8px 2px", borderTop: "1px solid var(--color-divider)", marginTop: 2 }}>ทั้งหมด</div>
+                  )}
+                  {/* Free-text "add your own" option (§ fix, 2nd round) — the one and only
+                      add-new affordance now (a separate always-visible footer button was tried
+                      and removed as redundant with this). Given a solid, distinctly-colored
+                      "proper box" treatment per the user's explicit ask — not just a dashed
+                      border blending into the regular option rows above it. */}
+                  {opt.isFreeText && (
+                    <div style={{ borderTop: "1px solid var(--color-divider)", margin: "4px 0" }}></div>
+                  )}
+                  <div
+                    ref={el => { if (el) optionRefs.current[opt.key] = el; }}
+                    className="dialog-option"
+                    style={opt.isFreeText ? {
+                      padding: "12px 10px", fontSize: 14, fontWeight: 600, borderRadius: "var(--radius-sm)", cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+                      border: "1px solid var(--color-accent-700)",
+                      background: idx === highlightIndex
+                        ? "color-mix(in srgb, var(--color-accent-700) 28%, transparent)"
+                        : "var(--color-accent-100)",
+                      color: "var(--color-accent-800)",
+                    } : {
+                      padding: 10, fontSize: 14, borderRadius: "var(--radius-sm)", cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+                      border: "1px solid transparent",
+                      background: idx === highlightIndex
+                        ? "color-mix(in srgb, var(--color-accent-700) 16%, transparent)"
+                        : (opt.selected ? "color-mix(in srgb, var(--color-accent-700) 10%, transparent)" : undefined),
+                    }}
+                    onClick={opt.onSelect}
+                    onMouseEnter={() => setHighlightIndex(idx)}
+                  >
+                    <div>
+                      <div>{opt.isFreeText ? `➕ ${opt.label}` : opt.label}</div>
+                      {opt.sub && <div style={{ fontSize: 11, color: "color-mix(in srgb, var(--color-text) 55%, transparent)" }}>{opt.sub}</div>}
+                    </div>
+                    {opt.selected && (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flex: "none", color: "var(--color-accent-700)" }}><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    )}
+                  </div>
+                </React.Fragment>
+              ))}
+            </div>
+            <div className="dialog-actions">
+              <button className="btn btn-secondary" onClick={closeDropdown}>ปิด</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showExportConfirm && (
+        <div className="dialog-backdrop" onClick={() => setShowExportConfirm(false)} style={{ zIndex: 60 }}>
+          <div className="dialog" onClick={e => e.stopPropagation()}>
+            <div className="dialog-title">ยืนยันเสร็จสิ้นและส่งออกข้อมูล</div>
+            <p style={{ fontSize: 14, margin: 0 }}>ยืนยันเสร็จสิ้นและส่งออกข้อมูล {stats.total} รายการเป็นไฟล์ Excel?</p>
+            {unconfirmedReview > 0 && (
+              <p style={{ fontSize: 13, margin: 0, color: "oklch(42% 0.14 25)", background: "oklch(94% 0.045 25)", padding: "8px 10px", borderRadius: "var(--radius-md)" }}>
+                ยังมี {unconfirmedReview} แถวที่ยังไม่ได้ตรวจ ต้องการส่งออกต่อหรือไม่?
+              </p>
+            )}
+            {!supportsFileSystemAccess() && (
+              <p style={{ fontSize: 12, margin: 0, color: "color-mix(in srgb, var(--color-text) 55%, transparent)" }}>เบราว์เซอร์นี้จะดาวน์โหลดเป็นไฟล์ใหม่ทุกครั้ง</p>
+            )}
+            <div className="dialog-actions">
+              <button className="btn btn-secondary" onClick={() => setShowExportConfirm(false)}>ยกเลิก</button>
+              <button className="btn btn-primary" onClick={confirmExport}>ยืนยันและส่งออก</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showToast && (
+        <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: "oklch(25% 0.02 100)", color: "white", padding: "12px 20px", borderRadius: "var(--radius-md)", fontSize: 13, boxShadow: "var(--shadow-lg)", zIndex: 80, display: "flex", alignItems: "center", gap: 8 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="oklch(70% 0.15 150)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 17.01"></polyline></svg>
+          {toastMessage}
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
 </body>
 </html>

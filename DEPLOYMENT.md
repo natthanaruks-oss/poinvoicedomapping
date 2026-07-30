@@ -1,50 +1,50 @@
 # Deployment Guide
 
-## GitHub
+## A. Upload to GitHub using the website
+
+1. Create a new repository named `Po-invoice-Do-Mapping`.
+2. Extract the deployment ZIP.
+3. Upload all extracted files and folders to the repository root.
+4. Confirm that `index.html` is visible at the repository root, not inside another nested folder.
+5. Commit the files to the default branch.
+
+## B. Upload to GitHub using Git
+
+Run the following commands from the extracted project folder:
 
 ```bash
 git init
 git add .
-git commit -m "Deploy browser-only OCR item recheck app"
+git commit -m "Initial deployment of PO-Invoice-DO Mapping"
 git branch -M main
-git remote add origin https://github.com/<account>/<repository>.git
+git remote add origin https://github.com/YOUR-USERNAME/Po-invoice-Do-Mapping.git
 git push -u origin main
 ```
 
-## Cloudflare Pages — Git integration
+Replace `YOUR-USERNAME` with the GitHub account name.
 
-1. Open **Cloudflare Dashboard**.
-2. Select **Workers & Pages**.
-3. Create a **Pages** project and connect the GitHub repository.
-4. Configure:
-   - Framework preset: `None`
-   - Build command: blank
-   - Build output directory: `/`
-   - Root directory: blank
-   - Production branch: `main`
-5. Deploy.
+## C. Deploy from GitHub to Cloudflare Pages
 
-## Cloudflare Pages — Direct Upload
+Use these project settings:
 
-Upload this ZIP, or upload all files with `index.html` at the package root.
+- Production branch: `main`
+- Framework preset: `None`
+- Build command: leave blank
+- Build output directory: `/`
+- Root directory: leave blank
+- Environment variables: none required
 
-## Data and security controls
+After deployment, open the Cloudflare Pages URL and test:
 
-- No business data is included in the deployed source.
-- No imported data is sent to Cloudflare.
-- Browser storage APIs are not used.
-- The Content Security Policy blocks all network connections from application code with `connect-src 'none'`.
-- Google Fonts and other third-party runtime resources are not used.
-- Refreshing or closing the page clears the working data.
+1. The main table loads.
+2. An Excel file can be imported.
+3. Supplier and item mapping selections work.
+4. The validated Excel file can be exported.
 
-Cloudflare Access can still be enabled to restrict who may open the tool, even though the tool itself does not store or transmit imported data.
+## D. Cloudflare Direct Upload
 
-## Post-deployment checks
+The deployment ZIP places `index.html` at the ZIP root and can be used as a static deployment package. No build command or dependency installation is required.
 
-1. Open the deployed URL and confirm the page starts empty.
-2. Import a test Excel file containing `Item Description (OCR)` and `Matched Item Name`.
-3. Edit an OCR field and a matched item name.
-4. Confirm a row and export the workbook.
-5. Verify `Review Status`, `Review Note`, `Reviewed At`, and `Changed Fields`.
-6. Refresh the web page and confirm imported records disappear.
-7. In browser developer tools, verify no network request occurs during import, edit, or export.
+## E. Internal-access control
+
+The mapping master is embedded in the browser application. For internal company use, configure Cloudflare Access so only approved users can open the site.

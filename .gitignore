@@ -19,6 +19,12 @@ Thumbs.db
 *.xlsb
 *.csv
 
+# EXCEPTION: the live Supplier Master file is a required runtime asset (fetched by the app
+# itself on load, see CLAUDE.md §4) — must be deployed alongside index.html, not excluded.
+# Filename must match SUPPLIER_MASTER_FILENAME in index.html exactly — currently
+# "supplier_item_master.xlsx" (renamed from "supplier_master.xlsx" at the user's request).
+!supplier_item_master.xlsx
+
 # Build/log/temp files
 node_modules/
 dist/
