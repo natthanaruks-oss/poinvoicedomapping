@@ -1169,41 +1169,23 @@ function withMockDocumentId(row) {
 
 const RAW_ROWS = BASE_ROWS.concat(EXTRA_ROWS).map(applyItemCodeExactRule).map(withDefaultCharacterErrorRate).map(withMockDocumentId);
 
-// Validation progress persists in sessionStorage (not localStorage) until export succeeds —
-// refreshing the tab must not lose a user's in-progress review of a batch, but fully closing
-// the tab/browser and reopening the app later must always start clean (no stale batch from a
-// previous session left showing — confirmed with the user, was confusing during testing).
+// Transaction rows are intentionally kept in memory only. The previous build persisted the
+// imported workbook in sessionStorage so a refresh could resume the batch. On real production
+// files this caused the second page load to parse/render a large stale payload before the UI was
+// ready, resulting in an intermittent white screen. It also conflicted with the operating rule
+// that transaction/OCR data must not remain stored by the web app.
+//
+// Keep the old key only so this build can remove data left by earlier deployments.
 const STORAGE_KEY = "imv_validation_state";
-// v5: rows gained freeTextSupplier/freeTextItem flags and selectedItem.isFreeText (§ free-text
-// entry) — purely additive, but bumped per this project's practice of bumping on any meaningful
-// row-shape change.
-const SCHEMA_VERSION = 5;
-
-function loadPersistedRows() {
-  try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (parsed && parsed.version === SCHEMA_VERSION && Array.isArray(parsed.rows)) {
-      return parsed.rows;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function persistRows(rows) {
-  try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ version: SCHEMA_VERSION, rows }));
-  } catch {}
-}
 
 function clearPersistedRows() {
   try {
     sessionStorage.removeItem(STORAGE_KEY);
   } catch {}
 }
+
+// Clear legacy state synchronously before React starts. Refresh/reopen now always starts clean.
+clearPersistedRows();
 
 // Whitespace/case-insensitive key for item-name comparison. IT's real matched-item-name text
 // (from their own pipeline) doesn't always byte-match Supplier Master's spelling exactly — seen
@@ -1607,7 +1589,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showOnlyReview, setShowOnlyReview] = useState(false);
   const [expandedRows, setExpandedRows] = useState({});
-  const [rows, setRows] = useState(() => loadPersistedRows() || []);
+  const [rows, setRows] = useState([]);
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState("");
   const [hoveredField, setHoveredField] = useState(null);
@@ -1665,10 +1647,6 @@ function App() {
       }
     })();
   }, []);
-
-  useEffect(() => {
-    persistRows(rows);
-  }, [rows]);
 
 
   function retryLoad() {
@@ -2628,7 +2606,38 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+class AppErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error) {
+    console.error("Invoice Validation app error:", error);
+  }
+  resetApp = () => {
+    clearPersistedRows();
+    window.location.reload();
+  };
+  render() {
+    if (!this.state.hasError) return this.props.children;
+    return (
+      <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24, boxSizing: "border-box", fontFamily: "var(--font-body)", background: "var(--color-bg)", color: "var(--color-text)" }}>
+        <div style={{ maxWidth: 520, padding: 24, border: "1px solid var(--color-divider)", borderRadius: "var(--radius-lg)", background: "var(--color-surface)", boxShadow: "var(--shadow-md)" }}>
+          <h2 style={{ marginTop: 0 }}>ไม่สามารถเปิดหน้าตรวจสอบได้</h2>
+          <p style={{ lineHeight: 1.6 }}>ข้อมูลชั่วคราวหรือสถานะของหน้าเว็บอาจผิดปกติ กรุณากดปุ่มด้านล่างเพื่อเปิดระบบใหม่โดยไม่เก็บข้อมูลเดิม</p>
+          <button className="btn btn-primary" onClick={this.resetApp}>ล้างข้อมูลชั่วคราวและเปิดใหม่</button>
+        </div>
+      </div>
+    );
+  }
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <AppErrorBoundary><App /></AppErrorBoundary>
+);
 </script>
 </body>
 </html>
