@@ -4,16 +4,7 @@
   Referrer-Policy: no-referrer
   Permissions-Policy: camera=(), geolocation=(), microphone=()
 
-/
-  Cache-Control: no-store, max-age=0
-
 /index.html
-  Cache-Control: no-store, max-age=0
-
-/supplier_item_master.xlsx
-  Cache-Control: no-store, max-age=0
-
-/styles.css
   Cache-Control: no-cache
 
 /vendor/*
